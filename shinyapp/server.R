@@ -66,32 +66,36 @@ load_csv <- function(file, columnsNames, header = FALSE) {
 calculate_calculation <- function(time_line1, time_line2, residua){
    if(is.null(time_line1) || is.null(time_line2) || is.null(residua)) return(NULL)
    
-   mean <- mean(residua$bpm)
-   abs_mean <- mean(abs(residua$bpm))
    dispersion <- calculate_dispersion(residua)
    std_dev <- sqrt(dispersion)
    corelation <- cor(x = time_line1$bpm, y = time_line2$bpm, method = c("pearson"))
    
    data.table(
-      c("Mean error","Abs mean error", "Error dispersion", "Error SD", "Corelation"),
-      c(mean, abs_mean, dispersion, std_dev, corelation)
+      c("Error dispersion", "Error SD", "Corelation"),
+      c(dispersion, std_dev, corelation)
    )
 }
 
-calculate_quantile <- function(time_line1, time_line2, name1, name2){
-   quantile1 <- quantile(time_line1$bpm)
-   quantile2 <- quantile(time_line2$bpm)
+calculate_quantile <- function(time_line1, time_line2, time_line3, time_line4, name1, name2, name3, name4){
+   quantile1 <- quantile(time_line1)
+   quantile2 <- quantile(time_line2)
+   quantile3 <- quantile(time_line3)
+   quantile4 <- quantile(time_line4)
    
-   median1 <- median(time_line1$bpm)
-   median2 <- median(time_line2$bpm)
+   mean1 <- mean(time_line1)
+   mean2 <- mean(time_line2)
+   mean3 <- mean(time_line3)
+   mean4 <- mean(time_line4)
    
    table <- data.table(
       c("Min", "1st Qu.", "Mean", "Median", "3rd Qu.", "Max"),
-      c(quantile1[1:3], median1, quantile1[4:5]),
-      c(quantile2[1:3], median2, quantile2[4:5])
+      c(quantile1[1:2], mean1, quantile1[3:5]),
+      c(quantile2[1:2], mean2, quantile2[3:5]),
+      c(quantile3[1:2], mean3, quantile3[3:5]),
+      c(quantile4[1:2], mean4, quantile4[3:5])
    )
    
-   setnames(table, c("V1","V2","V3"), c("", name1, name2))
+   setnames(table, c("V1","V2","V3","V4","V5"), c("", name1, name2, name3, name4))
    table
 }
 
@@ -197,7 +201,6 @@ create_bland_altman_plot <- function(time_line1, time_line2, residua){
 }
 
 
-
 # =================================================================================================================================
 # ============================================================ SERVER =============================================================
 # =================================================================================================================================
@@ -290,9 +293,8 @@ function(input, output, session) {
    output$calculationLow <-renderTable(colnames = FALSE,{
       calculate_calculation(inputLow1(), inputLow2(), residuaLow())
    })
-   
-   output$quantileLow <- renderTable(align = "lcc", {
-      calculate_quantile(inputLow1(), inputLow2(), input$deviceSelect1, input$deviceSelect2)
+   output$quantileLow <- renderTable(align = "lcccc", {
+      calculate_quantile(inputLow1()$bpm, inputLow2()$bpm, residuaLow()$bpm, abs(residuaLow()$bpm), input$deviceSelect1, input$deviceSelect2, 'error', 'abs_error')
    })
    
    
