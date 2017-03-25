@@ -200,6 +200,10 @@ create_bland_altman_plot <- function(time_line1, time_line2, residua){
       layout(xaxis = list(zeroline = FALSE, title = '(A + B)/2'), yaxis = list(zeroline = FALSE, title = 'A - B'))
 }
 
+create_box_plot <- function(residua){
+   plot_ly(y = ~residua$bpm, type = "box")
+}
+
 
 # =================================================================================================================================
 # ============================================================ SERVER =============================================================
@@ -295,6 +299,16 @@ function(input, output, session) {
    })
    output$quantileLow <- renderTable(align = "lcccc", {
       calculate_quantile(inputLow1()$bpm, inputLow2()$bpm, residuaLow()$bpm, abs(residuaLow()$bpm), input$deviceSelect1, input$deviceSelect2, 'error', 'abs_error')
+   })
+   
+   output$boxPlotLow <- renderPlotly({
+      create_box_plot(residuaLow())
+   })
+   output$boxPlotMed <- renderPlotly({
+      create_box_plot(residuaMed())
+   })
+   output$boxPlotHig <- renderPlotly({
+      create_box_plot(residuaHig())
    })
    
    

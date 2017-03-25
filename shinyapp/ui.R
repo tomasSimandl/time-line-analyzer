@@ -75,7 +75,7 @@ shinyUI(
                 plotlyOutput("plotResiLow", width = "100%")
              ),
              wellPanel(
-                plotOutput("boxPlotLow", width = "100%")
+                plotlyOutput("boxPlotLow", width = "100%")
              ),
              wellPanel(
                 plotlyOutput("BAPlotLow", width = "100%")
@@ -96,7 +96,7 @@ shinyUI(
                 plotlyOutput("plotResiMed", width = "100%")
              ),
              wellPanel(
-                plotOutput("boxPlotMed", width = "100%")
+                plotlyOutput("boxPlotMed", width = "100%")
              ),
              wellPanel(
                 plotlyOutput("BAPlotMed", width = "100%")
@@ -117,7 +117,7 @@ shinyUI(
                 plotlyOutput("plotResiHig", width = "100%")
              ),
              wellPanel(
-                plotOutput("boxPlotHig", width = "100%")
+                plotlyOutput("boxPlotHig", width = "100%")
              ),
              wellPanel(
                 plotlyOutput("BAPlotHig", width = "100%")
