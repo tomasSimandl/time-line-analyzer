@@ -68,17 +68,19 @@ shinyUI(
              ),
              wellPanel(
                 h2("Plot comparing low BPMs"),
-                plotlyOutput("plotLow", width = "100%")
+                plotlyOutput("plotLow")
              ),
              wellPanel(
                 h2("Plot of residuals for low BPMs"),
-                plotlyOutput("plotResiLow", width = "100%")
+                plotlyOutput("plotResiLow")
              ),
              wellPanel(
-                plotlyOutput("boxPlotLow", width = "100%")
+                h2("Box plot showing outliers"),
+                plotlyOutput("boxPlotLow")
              ),
              wellPanel(
-                plotlyOutput("BAPlotLow", width = "100%")
+                h2("Bland-altman plot"),
+                plotlyOutput("BAPlotLow")
              )
     ),
     
@@ -89,17 +91,19 @@ shinyUI(
              ),
              wellPanel(
                 h2("Plot comparing medium BPMs"),
-                plotlyOutput("plotMed", width = "100%")
+                plotlyOutput("plotMed")
              ),
              wellPanel(
                 h2("Plot of residuals for medium BPMs"),
-                plotlyOutput("plotResiMed", width = "100%")
+                plotlyOutput("plotResiMed")
              ),
              wellPanel(
-                plotlyOutput("boxPlotMed", width = "100%")
+                h2("Box plot showing outliers"),
+                plotlyOutput("boxPlotMed")
              ),
              wellPanel(
-                plotlyOutput("BAPlotMed", width = "100%")
+                h2("Bland-altman plot"),
+                plotlyOutput("BAPlotMed")
              )
     ),
     
@@ -110,17 +114,19 @@ shinyUI(
              ),
              wellPanel(
                 h2("Plot comparing hight BPMs"),
-                plotlyOutput("plotHig", width = "100%")
+                plotlyOutput("plotHig")
              ),
              wellPanel(
                 h2("Plot of residuals for high BPMs"),
-                plotlyOutput("plotResiHig", width = "100%")
+                plotlyOutput("plotResiHig")
              ),
              wellPanel(
-                plotlyOutput("boxPlotHig", width = "100%")
+                h2("Box plot showing outliers"),
+                plotlyOutput("boxPlotHig")
              ),
              wellPanel(
-                plotlyOutput("BAPlotHig", width = "100%")
+                h2("Bland-altman plot"),
+                plotlyOutput("BAPlotHig")
              )
     ),
     
