@@ -62,8 +62,9 @@ shinyUI(
     tabPanel("LOW", value = "tabLow",
              h1("Compare of two time lines for low load"),
              wellPanel(
-                h2("Calculations")
-                
+                h2("Calculations"),
+                tableOutput("calculationLow"),
+                tableOutput("quantileLow")
              ),
              wellPanel(
                 h2("Plot comparing low BPMs"),
@@ -77,7 +78,7 @@ shinyUI(
                 plotOutput("boxPlotLow", width = "100%")
              ),
              wellPanel(
-                "bland altman plot"
+                plotlyOutput("BAPlotLow", width = "100%")
              )
     ),
     
@@ -98,7 +99,7 @@ shinyUI(
                 plotOutput("boxPlotMed", width = "100%")
              ),
              wellPanel(
-                "bland altman plot"
+                plotlyOutput("BAPlotMed", width = "100%")
              )
     ),
     
@@ -119,7 +120,7 @@ shinyUI(
                 plotOutput("boxPlotHig", width = "100%")
              ),
              wellPanel(
-                "bland altman plot"
+                plotlyOutput("BAPlotHig", width = "100%")
              )
     ),
     
