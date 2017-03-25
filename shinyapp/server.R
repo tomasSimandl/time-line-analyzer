@@ -172,8 +172,8 @@ create_plot <- function(time_line1, time_line2, name1, name2){
 create_resi_plot <- function(residua){
    validate(need(!is.null(residua),'Can not create a plot. No input data.'))
    
-   plot_ly(residua, y = ~bpm, x = anytime(residua$time), name = 'trace 0', type = 'scatter', mode = 'lines')%>%
-      layout(xaxis = list(title = "Time"), yaxis = list(title = "BPM"))
+   plot_ly(residua, y = ~bpm, x = anytime(residua$time), type = 'scatter', mode = 'lines')%>%
+      layout(xaxis = list(title = "Time"), yaxis = list(title = "A - B [BPM]"))
 }
 
 create_bland_altman_plot <- function(time_line1, time_line2, residua){
@@ -192,7 +192,8 @@ create_bland_altman_plot <- function(time_line1, time_line2, residua){
 }
 
 create_box_plot <- function(residua){
-   plot_ly(y = ~residua$bpm, type = "box")
+   plot_ly(y = ~residua$bpm, type = "box", name = '') %>%
+      layout(xaxis = list(title = "", showticklabels = FALSE), yaxis = list(title = "A - B [BPM]"))
 }
 
 # =================================================================================================================================
