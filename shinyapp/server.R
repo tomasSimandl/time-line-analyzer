@@ -6,7 +6,6 @@ library(plotly)
 # ========================================================= DATA READING ==========================================================
 # =================================================================================================================================
 
-# decide which method use for read data ===========================================================================================
 load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, timeShift){
    data <- switch(deviceSelect,
       chest_strap = load_chest_strap_csv(file, timeShift),
@@ -17,7 +16,7 @@ load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, time
    
    data_sampling(data, get_time(startTime), get_time(endTime), timeInterval)
    
-} # ==============================================================================================================================
+}
 
 load_garmin_tcx <- function(file, timeShift){
    if(is.null(file)) return(NULL)
@@ -41,66 +40,20 @@ load_fitbit_csv <- function(file, timeShift){
    data.table(time = as.numeric(format(as.POSIXct(paste(data$date, data$time, sep = " ")), format = "%s")) + timeShift, bpm = data$bpm)
 }
 
-# load data from csv for chest strap and create sampling =========================================================================
 load_chest_strap_csv <- function(file, timeShift) {
    columnsNames <- c("time", "", "bpm", "", "", "", "", "", "")
    
    data <- load_csv(file, columnsNames, header = FALSE)
    data_by_sec <- data.table(time = floor(data$time/1000) + timeShift, bpm = data$bpm)[, mean(bpm), by=time]
    data.table(time = data_by_sec$time, bpm = data_by_sec$V1) # TODO
-} # ==============================================================================================================================
+}
 
-# load data from csv with specific names of columns ==============================================================================
 load_csv <- function(file, columnsNames, header = FALSE) {
    if(is.null(file)) return(NULL)
    
    read.csv(file, header = header, col.names = columnsNames)
-} # ==============================================================================================================================
-
-
-
-
-
-
-
-calculate_calculation <- function(time_line1, time_line2, residua){
-   if(is.null(time_line1) || is.null(time_line2) || is.null(residua)) return(NULL)
-   
-   dispersion <- calculate_dispersion(residua)
-   std_dev <- sqrt(dispersion)
-   corelation <- cor(x = time_line1$bpm, y = time_line2$bpm, method = c("pearson"))
-   
-   data.table(
-      c("Error dispersion", "Error SD", "Corelation"),
-      c(dispersion, std_dev, corelation)
-   )
 }
 
-calculate_quantile <- function(time_line1, time_line2, time_line3, time_line4, name1, name2, name3, name4){
-   quantile1 <- quantile(time_line1)
-   quantile2 <- quantile(time_line2)
-   quantile3 <- quantile(time_line3)
-   quantile4 <- quantile(time_line4)
-   
-   mean1 <- mean(time_line1)
-   mean2 <- mean(time_line2)
-   mean3 <- mean(time_line3)
-   mean4 <- mean(time_line4)
-   
-   table <- data.table(
-      c("Min", "1st Qu.", "Mean", "Median", "3rd Qu.", "Max"),
-      c(quantile1[1:2], mean1, quantile1[3:5]),
-      c(quantile2[1:2], mean2, quantile2[3:5]),
-      c(quantile3[1:2], mean3, quantile3[3:5]),
-      c(quantile4[1:2], mean4, quantile4[3:5])
-   )
-   
-   setnames(table, c("V1","V2","V3","V4","V5"), c("", name1, name2, name3, name4))
-   table
-}
-
-
-# calculate average for data by timeInterval. ====================================================================================
 data_sampling <- function(data, startTime, endTime, timeInterval){
    sum <- 0
    counter <- 0
@@ -109,7 +62,7 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
    sequence <- seq(startTime, endTime, timeInterval)
    size <- length(sequence)
    DT <- data.table(time = sequence, bpm = numeric(size))
-
+   
    for (n in 1:nrow(data)){
       curTime <- data[n]$time
       if(curTime < startTime) next
@@ -147,10 +100,46 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
       set(DT, i, "bpm", value)
    }
    DT
-} # ==============================================================================================================================
+}
 
-get_time <- function(strTime) {
-   as.numeric(format(strptime(x = strTime, format = "%d.%m.%Y %H:%M:%S"), format = "%s"))
+# =================================================================================================================================
+# ========================================================== CALCULATION ==========================================================
+# =================================================================================================================================
+
+calculate_calculation <- function(time_line1, time_line2, residua){
+   if(is.null(time_line1) || is.null(time_line2) || is.null(residua)) return(NULL)
+   
+   dispersion <- calculate_dispersion(residua)
+   std_dev <- sqrt(dispersion)
+   corelation <- cor(x = time_line1$bpm, y = time_line2$bpm, method = c("pearson"))
+   
+   data.table(
+      c("Error dispersion", "Error SD", "Corelation"),
+      c(dispersion, std_dev, corelation)
+   )
+}
+
+calculate_quantile <- function(time_line1, time_line2, time_line3, time_line4, name1, name2, name3, name4){
+   quantile1 <- quantile(time_line1)
+   quantile2 <- quantile(time_line2)
+   quantile3 <- quantile(time_line3)
+   quantile4 <- quantile(time_line4)
+   
+   mean1 <- mean(time_line1)
+   mean2 <- mean(time_line2)
+   mean3 <- mean(time_line3)
+   mean4 <- mean(time_line4)
+   
+   table <- data.table(
+      c("Min", "1st Qu.", "Mean", "Median", "3rd Qu.", "Max"),
+      c(quantile1[1:2], mean1, quantile1[3:5]),
+      c(quantile2[1:2], mean2, quantile2[3:5]),
+      c(quantile3[1:2], mean3, quantile3[3:5]),
+      c(quantile4[1:2], mean4, quantile4[3:5])
+   )
+   
+   setnames(table, c("V1","V2","V3","V4","V5"), c("", name1, name2, name3, name4))
+   table
 }
 
 calculate_dispersion <- function(residua){
@@ -159,11 +148,14 @@ calculate_dispersion <- function(residua){
    sum(residua$bpm ^ 2)/nrow(residua)
 }
 
+get_time <- function(strTime) {
+   as.numeric(format(strptime(x = strTime, format = "%d.%m.%Y %H:%M:%S"), format = "%s"))
+}
+
 # =================================================================================================================================
 # ============================================================ GRAPHS =============================================================
 # =================================================================================================================================
 
-# create plot from two input time lines
 create_plot <- function(time_line1, time_line2, name1, name2){
    validate(need(!is.null(time_line1) && !is.null(time_line2),'Can not create a plot. No input data.'))
    
@@ -177,7 +169,6 @@ create_plot <- function(time_line1, time_line2, name1, name2){
       layout(xaxis = list(title = "Time"), yaxis = list(title = "BPM"))
 }
 
-# create plot of residuas from two input time lines
 create_resi_plot <- function(residua){
    validate(need(!is.null(residua),'Can not create a plot. No input data.'))
    
@@ -204,7 +195,6 @@ create_box_plot <- function(residua){
    plot_ly(y = ~residua$bpm, type = "box")
 }
 
-
 # =================================================================================================================================
 # ============================================================ SERVER =============================================================
 # =================================================================================================================================
@@ -217,7 +207,6 @@ function(input, output, session) {
       }
       updateNavbarPage(session, "navbar", selected = "tabSummary")
    })
-   
    
    # load files when change associated fileInput
    inputLow1 <- reactive({
@@ -262,6 +251,14 @@ function(input, output, session) {
    })
    
    
+   output$calculationLow <-renderTable(colnames = FALSE,{
+      calculate_calculation(inputLow1(), inputLow2(), residuaLow())
+   })
+   output$quantileLow <- renderTable(align = "lcccc", {
+      calculate_quantile(inputLow1()$bpm, inputLow2()$bpm, residuaLow()$bpm, abs(residuaLow()$bpm), input$deviceSelect1, input$deviceSelect2, 'error', 'abs_error')
+   })
+   
+   
    # render plots with two lines
    output$plotLow <- renderPlotly({
       create_plot(inputLow1(), inputLow2(), input$deviceSelect1, input$deviceSelect2)
@@ -284,23 +281,6 @@ function(input, output, session) {
       create_resi_plot(residuaHig())
    })
    
-   output$BAPlotLow <- renderPlotly({
-      create_bland_altman_plot(inputLow1(), inputLow2(), residuaLow())
-   })
-   output$BAPlotMed <- renderPlotly({
-      create_bland_altman_plot(inputMed1(), inputMed2(), residuaMed())
-   })
-   output$BAPlotHig <- renderPlotly({
-      create_bland_altman_plot(inputHig1(), inputHig2(), residuaHig())
-   })
-   
-   output$calculationLow <-renderTable(colnames = FALSE,{
-      calculate_calculation(inputLow1(), inputLow2(), residuaLow())
-   })
-   output$quantileLow <- renderTable(align = "lcccc", {
-      calculate_quantile(inputLow1()$bpm, inputLow2()$bpm, residuaLow()$bpm, abs(residuaLow()$bpm), input$deviceSelect1, input$deviceSelect2, 'error', 'abs_error')
-   })
-   
    output$boxPlotLow <- renderPlotly({
       create_box_plot(residuaLow())
    })
@@ -311,21 +291,13 @@ function(input, output, session) {
       create_box_plot(residuaHig())
    })
    
-   
-   output$boxPlot <- renderPlot({
-      means1 <- inputLow1()
-      means2 <- inputLow2()
-      if (is.null(means1) || is.null(means2)) return
-      
-      residua <- data.table(time = means1$time, bpm = means1$V1 - means2$V1)
-      
-      boxplot(means1$V1)
+   output$BAPlotLow <- renderPlotly({
+      create_bland_altman_plot(inputLow1(), inputLow2(), residuaLow())
    })
-   
-   output$table <- renderTable({
-      means1 <- inputLow1()
-      if (is.null(means1)) return
-      
-      data.table(time = anytime(means1$time), bpm = means1$V1)
+   output$BAPlotMed <- renderPlotly({
+      create_bland_altman_plot(inputMed1(), inputMed2(), residuaMed())
+   })
+   output$BAPlotHig <- renderPlotly({
+      create_bland_altman_plot(inputHig1(), inputHig2(), residuaHig())
    })
 }
