@@ -283,7 +283,6 @@ function(input, output, session) {
    })
    
    
-   
    output$calculationLow <-renderTable(colnames = FALSE,{
       calculate_calculation(filteredInputLow())
    })
@@ -291,7 +290,7 @@ function(input, output, session) {
       calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
    })
    
-   output$boxPlotWarning <- renderText({
+   output$boxPlotWarning1 <- output$boxPlotWarning2 <- output$boxPlotWarning3 <- renderText({
       if (!is.null(input$otherOptions) && 'io' %in% input$otherOptions){
          "Box plot is independent on 'ignore outliers' option"
       } else {
@@ -321,16 +320,6 @@ function(input, output, session) {
       create_resi_plot(filteredInputHig())
    })
    
-   output$boxPlotLow <- renderPlotly({
-      create_box_plot(inputLowOutliers())
-   })
-   output$boxPlotMed <- renderPlotly({
-      create_box_plot(inputMedOutliers())
-   })
-   output$boxPlotHig <- renderPlotly({
-      create_box_plot(inputHigOutliers())
-   })
-   
    output$BAPlotLow <- renderPlotly({
       create_bland_altman_plot(filteredInputLow())
    })
@@ -339,5 +328,15 @@ function(input, output, session) {
    })
    output$BAPlotHig <- renderPlotly({
       create_bland_altman_plot(filteredInputHig())
+   })
+   
+   output$boxPlotLow <- renderPlotly({
+      create_box_plot(inputLowOutliers())
+   })
+   output$boxPlotMed <- renderPlotly({
+      create_box_plot(inputMedOutliers())
+   })
+   output$boxPlotHig <- renderPlotly({
+      create_box_plot(inputHigOutliers())
    })
 }

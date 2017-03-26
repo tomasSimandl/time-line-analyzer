@@ -76,13 +76,13 @@ shinyUI(
                 plotlyOutput("plotResiLow")
              ),
              wellPanel(
-                h2("Box plot showing outliers"),
-                plotlyOutput("boxPlotLow"),
-                textOutput("boxPlotWarning")
-             ),
-             wellPanel(
                 h2("Bland-altman plot"),
                 plotlyOutput("BAPlotLow")
+             ),
+             wellPanel(
+                h2("Box plot showing outliers"),
+                plotlyOutput("boxPlotLow"),
+                span(textOutput("boxPlotWarning1"), style="color:red")
              )
     ),
     
@@ -100,12 +100,13 @@ shinyUI(
                 plotlyOutput("plotResiMed")
              ),
              wellPanel(
-                h2("Box plot showing outliers"),
-                plotlyOutput("boxPlotMed")
-             ),
-             wellPanel(
                 h2("Bland-altman plot"),
                 plotlyOutput("BAPlotMed")
+             ),
+             wellPanel(
+                h2("Box plot showing outliers"),
+                plotlyOutput("boxPlotMed"),
+                span(textOutput("boxPlotWarning2"), style="color:red")
              )
     ),
     
@@ -123,12 +124,13 @@ shinyUI(
                 plotlyOutput("plotResiHig")
              ),
              wellPanel(
-                h2("Box plot showing outliers"),
-                plotlyOutput("boxPlotHig")
-             ),
-             wellPanel(
                 h2("Bland-altman plot"),
                 plotlyOutput("BAPlotHig")
+             ),
+             wellPanel(
+                h2("Box plot showing outliers"),
+                plotlyOutput("boxPlotHig"),
+                span(textOutput("boxPlotWarning3"), style="color:red")
              )
     ),
     
