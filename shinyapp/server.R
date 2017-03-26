@@ -2,6 +2,7 @@ library(shiny)
 library(anytime)
 library(data.table)
 library(plotly)
+
 # =================================================================================================================================
 # ========================================================= DATA READING ==========================================================
 # =================================================================================================================================
@@ -188,6 +189,12 @@ get_time <- function(strTime) {
    as.numeric(format(strptime(x = strTime, format = "%d.%m.%Y %H:%M:%S"), format = "%s"))
 }
 
+create_table <- function(data, device1, device2){
+   table <- data.table(format(anytime(data$time), format = "%d.%m.%Y %H:%M:%S"), data$bpm.x, data$bpm.y, data$residues)
+   setnames(table, c("V1", "V2", "V3", "V4"), c("Time", paste0(device1, " [BPM]"), paste0(device2, " [BPM]"), "Residuas [BPM]"))
+   table
+}
+
 # =================================================================================================================================
 # ============================================================ GRAPHS =============================================================
 # =================================================================================================================================
@@ -309,13 +316,13 @@ function(input, output, session) {
       calculate_calculation(filteredInputHig())
    })
    
-   output$quantileLow <- renderTable(align = "lcccccc", {
+   output$quantileLow <- renderTable(align = "lcccccc", width = "100%", {
       calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
    })
-   output$quantileMed <- renderTable(align = "lcccccc", {
+   output$quantileMed <- renderTable(align = "lcccccc", width = "100%", {
       calculate_quantile(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
    })
-   output$quantileHig <- renderTable(align = "lcccccc", {
+   output$quantileHig <- renderTable(align = "lcccccc", width = "100%", {
       calculate_quantile(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
    })
    
@@ -366,5 +373,16 @@ function(input, output, session) {
       } else {
          ""
       }
+   })
+   
+   
+   output$tableLow <- renderTable(align = "cccc", width = "100%", {
+      create_table(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
+   })
+   output$tableMed <- renderTable(align = "cccc", width = "100%", {
+      create_table(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
+   })
+   output$tableHig <- renderTable(align = "cccc", width = "100%", {
+      create_table(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
    })
 }

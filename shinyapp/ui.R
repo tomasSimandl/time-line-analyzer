@@ -147,9 +147,11 @@ shinyUI(
     
     # panel for tables with input files data
     tabPanel("Tables", value = "tabTables",
-      tableOutput('tableLow'),
-      tableOutput('tableMed'),
-      tableOutput('tableHig')
+                tabsetPanel(
+                   tabPanel("Low", tableOutput('tableLow')), 
+                   tabPanel("Medium", tableOutput('tableMed')), 
+                   tabPanel("High", tableOutput('tableHig'))
+                )
     )
   )
 ) 
