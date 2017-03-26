@@ -63,16 +63,16 @@ shinyUI(
     tabPanel("LOW", value = "tabLow",
              h1("Compare of two time lines for low load"),
              wellPanel(
-                h2("Calculations"),
-                tableOutput("calculationLow"),
-                tableOutput("quantileLow")
+               h2("Calculations"),
+               tableOutput("quantileLow"),
+               tableOutput("calculationLow")
              ),
              wellPanel(
                 h2("Plot comparing low BPMs"),
                 plotlyOutput("plotLow")
              ),
              wellPanel(
-                h2("Plot of residuals for low BPMs"),
+                h2("Plot of residues for low BPMs"),
                 plotlyOutput("plotResiLow")
              ),
              wellPanel(
@@ -89,14 +89,16 @@ shinyUI(
     tabPanel("MEDIUM", value = "tabMedium",
              h1("Compare of two time lines for medium load"),
              wellPanel(
-                "Calculations"
+                h2("Calculations"),
+                tableOutput("quantileMed"),
+                tableOutput("calculationMed")
              ),
              wellPanel(
                 h2("Plot comparing medium BPMs"),
                 plotlyOutput("plotMed")
              ),
              wellPanel(
-                h2("Plot of residuals for medium BPMs"),
+                h2("Plot of residues for medium BPMs"),
                 plotlyOutput("plotResiMed")
              ),
              wellPanel(
@@ -113,14 +115,16 @@ shinyUI(
     tabPanel("HIGH", value = "tabHigh",
              h1("Compare of two time lines for high load"),
              wellPanel(
-                "Calculations"
+                h2("Calculations"),
+                tableOutput("quantileHig"),
+                tableOutput("calculationHig")
              ),
              wellPanel(
                 h2("Plot comparing hight BPMs"),
                 plotlyOutput("plotHig")
              ),
              wellPanel(
-                h2("Plot of residuals for high BPMs"),
+                h2("Plot of residues for high BPMs"),
                 plotlyOutput("plotResiHig")
              ),
              wellPanel(

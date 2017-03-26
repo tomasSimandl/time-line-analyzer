@@ -116,7 +116,7 @@ filter_data <- function(data, options, outliers = TRUE){
    }
    
    if (ignoreOutliers && outliers) {
-      data <- data[!data$residua %in% boxplot.stats(data$residua)$out]
+      data <- data[!data$residues %in% boxplot.stats(data$residues)$out]
    }
    data
 }
@@ -128,43 +128,60 @@ filter_data <- function(data, options, outliers = TRUE){
 calculate_calculation <- function(time_lines){
    if(is.null(time_lines)) return(NULL)
    
-   dispersion <- calculate_dispersion(time_lines$residua)
+   dispersion <- calculate_dispersion(time_lines$residues)
    std_dev <- sqrt(dispersion)
    corelation <- cor(x = time_lines$bpm.x, y = time_lines$bpm.y, method = c("pearson"))
    
    data.table(
-      c("Error dispersion", "Error SD", "Corelation"),
-      c(dispersion, std_dev, corelation)
+      c("Dispersion", "Standard deviation", "Corelation", "Error SD"),
+      c(dispersion, std_dev, corelation, sd(time_lines$residues))
    )
+}
+
+calculate_quantile_mean <- function(time_line){
+   quantile <- quantile(time_line)
+   mean <- mean(time_line)
+   
+   c(quantile[1:2], mean, quantile[3:5])
 }
 
 calculate_quantile <- function(time_lines, name1, name2){
-   quantile1 <- quantile(time_lines$bpm.x)
-   quantile2 <- quantile(time_lines$bpm.y)
-   quantile3 <- quantile(time_lines$residua)
-   quantile4 <- quantile(abs(time_lines$residua))
    
-   mean1 <- mean(time_lines$bpm.x)
-   mean2 <- mean(time_lines$bpm.y)
-   mean3 <- mean(time_lines$residua)
-   mean4 <- mean(abs(time_lines$residua))
+   tm1 <- time_lines$bpm.x
+   tm2 <- time_lines$bpm.y
+   tm3 <- time_lines$residues
+   tm4 <- abs(time_lines$residues)
+   tm5 <- (time_lines$residues / time_lines$bpm.x) * 100
+   tm6 <- abs(time_lines$residues / time_lines$bpm.x) * 100
    
    table <- data.table(
       c("Min", "1st Qu.", "Mean", "Median", "3rd Qu.", "Max"),
-      c(quantile1[1:2], mean1, quantile1[3:5]),
-      c(quantile2[1:2], mean2, quantile2[3:5]),
-      c(quantile3[1:2], mean3, quantile3[3:5]),
-      c(quantile4[1:2], mean4, quantile4[3:5])
+      calculate_quantile_mean(tm1),
+      calculate_quantile_mean(tm2),
+      calculate_quantile_mean(tm3),
+      calculate_quantile_mean(tm4),
+      calculate_quantile_mean(tm5),
+      calculate_quantile_mean(tm6)
    )
    
-   setnames(table, c("V1","V2","V3","V4","V5"), c("", name1, name2, 'error', 'abs_error'))
+   setnames(table, c("V1","V2","V3","V4","V5", "V6", "V7"),
+            c(
+               "",
+               paste0(name1, " [BPM]"),
+               paste0(name2, " [BPM]"),
+               'error [BPM]',
+               'absolute error [BPM]',
+               'relative error [%]',
+               'absolute relative error [%]'
+               )
+            )
    table
 }
 
-calculate_dispersion <- function(residua){
-   if(is.null(residua)) return(NULL)
+calculate_dispersion <- function(residues){
+   if(is.null(residues)) return(NULL)
    
-   sum(residua ^ 2)/length(residua)
+   sum(residues ^ 2)/length(residues)
 }
 
 get_time <- function(strTime) {
@@ -186,15 +203,15 @@ create_plot <- function(time_lines, name1, name2){
 create_resi_plot <- function(time_lines){
    validate(need(!is.null(time_lines),'Can not create a plot. No input data.'))
    
-   plot_ly(time_lines, y = ~residua, x = anytime(time_lines$time), type = 'scatter', mode = 'lines')%>%
+   plot_ly(time_lines, y = ~residues, x = anytime(time_lines$time), type = 'scatter', mode = 'lines')%>%
       layout(xaxis = list(title = "Time"), yaxis = list(title = "A - B [BPM]"))
 }
 
 create_bland_altman_plot <- function(time_lines){
    validate(need(!is.null(time_lines),'Can not create a Bland-Altman plot. No input data.'))
    
-   data.sd <- 1.96 * sqrt(calculate_dispersion(time_lines$residua))
-   data.mean <- mean(time_lines$residua)
+   data.sd <- 1.96 * sd(time_lines$residues)
+   data.mean <- mean(time_lines$residues)
    data.x <- (time_lines$bpm.x + time_lines$bpm.y)/2
    data.y <- time_lines$bpm.x - time_lines$bpm.y
    
@@ -206,7 +223,7 @@ create_bland_altman_plot <- function(time_lines){
 }
 
 create_box_plot <- function(time_lines){
-   plot_ly(y = ~time_lines$residua, type = "box", name = '') %>%
+   plot_ly(y = ~time_lines$residues, type = "box", name = '') %>%
       layout(xaxis = list(title = "", showticklabels = FALSE, zeroline = FALSE), yaxis = list(title = "A - B [BPM]", zeroline = FALSE))
 }
 
@@ -259,7 +276,7 @@ function(input, output, session) {
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
-      filter_data(data[, residua := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
    inputMedOutliers <- reactive({
       time_line1 <- inputMed1()
@@ -267,7 +284,7 @@ function(input, output, session) {
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
-      filter_data(data[, residua := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
    inputHigOutliers <- reactive({
       time_line1 <- inputHig1()
@@ -275,27 +292,31 @@ function(input, output, session) {
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
-      filter_data(data[, residua := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
    
    otherOptions <- reactive({
       input$otherOptions
    })
    
-   
    output$calculationLow <-renderTable(colnames = FALSE,{
       calculate_calculation(filteredInputLow())
    })
-   output$quantileLow <- renderTable(align = "lcccc", {
-      calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
+   output$calculationMed <-renderTable(colnames = FALSE,{
+      calculate_calculation(filteredInputMed())
+   })
+   output$calculationHig <-renderTable(colnames = FALSE,{
+      calculate_calculation(filteredInputHig())
    })
    
-   output$boxPlotWarning1 <- output$boxPlotWarning2 <- output$boxPlotWarning3 <- renderText({
-      if (!is.null(input$otherOptions) && 'io' %in% input$otherOptions){
-         "Box plot is independent on 'ignore outliers' option"
-      } else {
-         ""
-      }
+   output$quantileLow <- renderTable(align = "lcccccc", {
+      calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
+   })
+   output$quantileMed <- renderTable(align = "lcccccc", {
+      calculate_quantile(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
+   })
+   output$quantileHig <- renderTable(align = "lcccccc", {
+      calculate_quantile(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
    })
    
    # render plots with two lines
@@ -309,7 +330,7 @@ function(input, output, session) {
       create_plot(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
    })
    
-   # render plots with residuas
+   # render plots with residues
    output$plotResiLow <- renderPlotly({
       create_resi_plot(filteredInputLow())
    })
@@ -338,5 +359,12 @@ function(input, output, session) {
    })
    output$boxPlotHig <- renderPlotly({
       create_box_plot(inputHigOutliers())
+   })
+   output$boxPlotWarning1 <- output$boxPlotWarning2 <- output$boxPlotWarning3 <- renderText({
+      if (!is.null(input$otherOptions) && 'io' %in% input$otherOptions){
+         "Box plot is independent on 'ignore outliers' option"
+      } else {
+         ""
+      }
    })
 }
