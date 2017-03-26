@@ -4,7 +4,7 @@ library(plotly)
 library(shinyTime)
 
 shinyUI(
-  navbarPage("Data Analyzer", id = "navbar", theme = shinytheme("darkly"),
+  navbarPage("Data Analyzer", id = "navbar", theme = shinytheme("united"),
              
     # Panel for file input
     tabPanel("File input", value = "tabFileInput",
@@ -35,6 +35,10 @@ shinyUI(
       wellPanel(
          h2("Setting"),
          fluidRow(
+            column(width = 4, numericInput(inputId = "timeIntervalInput", label = "Choose interval for data sampling [s]", value = 1, min = 1, max = 60)),
+            column(width = 4, checkboxGroupInput("otherOptions", "Options:", inline = TRUE, c("Ignore zero values" = "izv", "Ignore outliers" = "io")))
+         ),
+         fluidRow(
             column(width = 4, h4("Measurement interval for low load")),
             column(width = 4, h4("Measurement interval for medium load")),
             column(width = 4, h4("Measurement interval for high load"))
@@ -51,9 +55,6 @@ shinyUI(
             column(width = 4, numericInput(inputId = "timeShiftLow", label = "Time shift for low load [s]", value = 0, min = -1000, max = 1000)),
             column(width = 4, numericInput(inputId = "timeShiftMed", label = "Time shift for low load [s]", value = 0, min = -1000, max = 1000)),
             column(width = 4, numericInput(inputId = "timeShiftHig", label = "Time shift for low load [s]", value = 0, min = -1000, max = 1000))
-         ),
-         fluidRow(
-            column(width = 4, numericInput(inputId = "timeIntervalInput", label = "Choose interval for data sampling [s]", value = 1, min = 1, max = 60))
          )
       ),
       actionButton(inputId = "submitBtn", label = "Submit")
@@ -76,7 +77,8 @@ shinyUI(
              ),
              wellPanel(
                 h2("Box plot showing outliers"),
-                plotlyOutput("boxPlotLow")
+                plotlyOutput("boxPlotLow"),
+                textOutput("boxPlotWarning")
              ),
              wellPanel(
                 h2("Bland-altman plot"),

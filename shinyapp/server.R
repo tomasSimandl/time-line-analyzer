@@ -55,6 +55,9 @@ load_csv <- function(file, columnsNames, header = FALSE) {
 }
 
 data_sampling <- function(data, startTime, endTime, timeInterval){
+   
+   data <- data[time >= startTime]
+   
    sum <- 0
    counter <- 0
    sumStartTime <- startTime
@@ -102,16 +105,32 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
    DT
 }
 
+filter_data <- function(data, options, outliers = TRUE){
+   if(is.null(options)) return(data)
+   
+   ignoreZeroValues  <- 'izv' %in% options
+   ignoreOutliers    <- 'io'  %in% options
+   
+   if (ignoreZeroValues) {
+      data <- data[apply(data[,.(time, bpm.x, bpm.y)], 1, function(row) all(row != 0)),]
+   }
+   
+   if (ignoreOutliers && outliers) {
+      data <- data[!data$residua %in% boxplot.stats(data$residua)$out]
+   }
+   data
+}
+
 # =================================================================================================================================
 # ========================================================== CALCULATION ==========================================================
 # =================================================================================================================================
 
-calculate_calculation <- function(time_line1, time_line2, residua){
-   if(is.null(time_line1) || is.null(time_line2) || is.null(residua)) return(NULL)
+calculate_calculation <- function(time_lines){
+   if(is.null(time_lines)) return(NULL)
    
-   dispersion <- calculate_dispersion(residua)
+   dispersion <- calculate_dispersion(time_lines$residua)
    std_dev <- sqrt(dispersion)
-   corelation <- cor(x = time_line1$bpm, y = time_line2$bpm, method = c("pearson"))
+   corelation <- cor(x = time_lines$bpm.x, y = time_lines$bpm.y, method = c("pearson"))
    
    data.table(
       c("Error dispersion", "Error SD", "Corelation"),
@@ -119,16 +138,16 @@ calculate_calculation <- function(time_line1, time_line2, residua){
    )
 }
 
-calculate_quantile <- function(time_line1, time_line2, time_line3, time_line4, name1, name2, name3, name4){
-   quantile1 <- quantile(time_line1)
-   quantile2 <- quantile(time_line2)
-   quantile3 <- quantile(time_line3)
-   quantile4 <- quantile(time_line4)
+calculate_quantile <- function(time_lines, name1, name2){
+   quantile1 <- quantile(time_lines$bpm.x)
+   quantile2 <- quantile(time_lines$bpm.y)
+   quantile3 <- quantile(time_lines$residua)
+   quantile4 <- quantile(abs(time_lines$residua))
    
-   mean1 <- mean(time_line1)
-   mean2 <- mean(time_line2)
-   mean3 <- mean(time_line3)
-   mean4 <- mean(time_line4)
+   mean1 <- mean(time_lines$bpm.x)
+   mean2 <- mean(time_lines$bpm.y)
+   mean3 <- mean(time_lines$residua)
+   mean4 <- mean(abs(time_lines$residua))
    
    table <- data.table(
       c("Min", "1st Qu.", "Mean", "Median", "3rd Qu.", "Max"),
@@ -138,14 +157,14 @@ calculate_quantile <- function(time_line1, time_line2, time_line3, time_line4, n
       c(quantile4[1:2], mean4, quantile4[3:5])
    )
    
-   setnames(table, c("V1","V2","V3","V4","V5"), c("", name1, name2, name3, name4))
+   setnames(table, c("V1","V2","V3","V4","V5"), c("", name1, name2, 'error', 'abs_error'))
    table
 }
 
 calculate_dispersion <- function(residua){
    if(is.null(residua)) return(NULL)
    
-   sum(residua$bpm ^ 2)/nrow(residua)
+   sum(residua ^ 2)/length(residua)
 }
 
 get_time <- function(strTime) {
@@ -156,33 +175,28 @@ get_time <- function(strTime) {
 # ============================================================ GRAPHS =============================================================
 # =================================================================================================================================
 
-create_plot <- function(time_line1, time_line2, name1, name2){
-   validate(need(!is.null(time_line1) && !is.null(time_line2),'Can not create a plot. No input data.'))
+create_plot <- function(time_lines, name1, name2){
+   validate(need(!is.null(time_lines),'Can not create a plot. No input data.'))
    
-   max <- max(c(max(time_line1$bpm), max(time_line2$bpm)))
-   min <- min(c(min(time_line1$bpm), min(time_line2$bpm)))
-   
-   mer <- merge(x = time_line1, y = time_line2, by = "time")
-   
-   plot_ly(y = mer$bpm.x, x = anytime(mer$time), name = name1, type = 'scatter', mode = 'lines')%>%
-      add_trace(y = mer$bpm.y, name = name2, mode = 'lines')%>%
+   plot_ly(y = time_lines$bpm.x, x = anytime(time_lines$time), name = name1, type = 'scatter', mode = 'lines')%>%
+      add_trace(y = time_lines$bpm.y, name = name2, mode = 'lines')%>%
       layout(xaxis = list(title = "Time"), yaxis = list(title = "BPM"))
 }
 
-create_resi_plot <- function(residua){
-   validate(need(!is.null(residua),'Can not create a plot. No input data.'))
+create_resi_plot <- function(time_lines){
+   validate(need(!is.null(time_lines),'Can not create a plot. No input data.'))
    
-   plot_ly(residua, y = ~bpm, x = anytime(residua$time), type = 'scatter', mode = 'lines')%>%
+   plot_ly(time_lines, y = ~residua, x = anytime(time_lines$time), type = 'scatter', mode = 'lines')%>%
       layout(xaxis = list(title = "Time"), yaxis = list(title = "A - B [BPM]"))
 }
 
-create_bland_altman_plot <- function(time_line1, time_line2, residua){
-   validate(need(!is.null(time_line2) && !is.null(time_line1) && !is.null(residua),'Can not create a Bland-Altman plot. No input data.'))
+create_bland_altman_plot <- function(time_lines){
+   validate(need(!is.null(time_lines),'Can not create a Bland-Altman plot. No input data.'))
    
-   data.sd <- 1.96 * sqrt(calculate_dispersion(residua))
-   data.mean <- mean(residua$bpm)
-   data.x <- (time_line1$bpm + time_line2$bpm)/2
-   data.y <- time_line1$bpm - time_line2$bpm
+   data.sd <- 1.96 * sqrt(calculate_dispersion(time_lines$residua))
+   data.mean <- mean(time_lines$residua)
+   data.x <- (time_lines$bpm.x + time_lines$bpm.y)/2
+   data.y <- time_lines$bpm.x - time_lines$bpm.y
    
    plot_ly(x = ~data.x, y = ~data.y, name = 'data', type = 'scatter', mode = 'markers') %>%
       add_trace(y = ~data.mean + data.sd, name = 'Mean + 1.96SD', mode = 'lines') %>%
@@ -191,9 +205,9 @@ create_bland_altman_plot <- function(time_line1, time_line2, residua){
       layout(xaxis = list(zeroline = FALSE, title = '(A + B)/2'), yaxis = list(zeroline = FALSE, title = 'A - B'))
 }
 
-create_box_plot <- function(residua){
-   plot_ly(y = ~residua$bpm, type = "box", name = '') %>%
-      layout(xaxis = list(title = "", showticklabels = FALSE), yaxis = list(title = "A - B [BPM]"))
+create_box_plot <- function(time_lines){
+   plot_ly(y = ~time_lines$residua, type = "box", name = '') %>%
+      layout(xaxis = list(title = "", showticklabels = FALSE, zeroline = FALSE), yaxis = list(title = "A - B [BPM]", zeroline = FALSE))
 }
 
 # =================================================================================================================================
@@ -229,76 +243,101 @@ function(input, output, session) {
       load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$startMeasHig, input$endMeasHig, input$timeIntervalInput, input$timeShiftHig + (input$timeZone2*3600))
    })
    
-   residuaLow <- reactive({
+   filteredInputLow <- reactive({
+      filter_data(inputLowOutliers(), input$otherOptions)
+   })
+   filteredInputMed <- reactive({
+      filter_data(inputMedOutliers(), input$otherOptions)
+   })
+   filteredInputHig <- reactive({
+      filter_data(inputHigOutliers(), input$otherOptions)
+   })
+   
+   inputLowOutliers <- reactive({
       time_line1 <- inputLow1()
       time_line2 <- inputLow2()
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
-      data.table(time = time_line1$time, bpm = time_line1$bpm - time_line2$bpm)
+      data <- merge(x = time_line1, y = time_line2, by = "time")
+      filter_data(data[, residua := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
-   residuaMed <- reactive({
+   inputMedOutliers <- reactive({
       time_line1 <- inputMed1()
       time_line2 <- inputMed2()
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
-      data.table(time = time_line1$time, bpm = time_line1$bpm - time_line2$bpm)
+      data <- merge(x = time_line1, y = time_line2, by = "time")
+      filter_data(data[, residua := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
-   residuaHig <- reactive({
+   inputHigOutliers <- reactive({
       time_line1 <- inputHig1()
       time_line2 <- inputHig2()
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
-      data.table(time = time_line1$time, bpm = time_line1$bpm - time_line2$bpm)
+      data <- merge(x = time_line1, y = time_line2, by = "time")
+      filter_data(data[, residua := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
+   
+   otherOptions <- reactive({
+      input$otherOptions
+   })
+   
    
    
    output$calculationLow <-renderTable(colnames = FALSE,{
-      calculate_calculation(inputLow1(), inputLow2(), residuaLow())
+      calculate_calculation(filteredInputLow())
    })
    output$quantileLow <- renderTable(align = "lcccc", {
-      calculate_quantile(inputLow1()$bpm, inputLow2()$bpm, residuaLow()$bpm, abs(residuaLow()$bpm), input$deviceSelect1, input$deviceSelect2, 'error', 'abs_error')
+      calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
    })
    
+   output$boxPlotWarning <- renderText({
+      if (!is.null(input$otherOptions) && 'io' %in% input$otherOptions){
+         "Box plot is independent on 'ignore outliers' option"
+      } else {
+         ""
+      }
+   })
    
    # render plots with two lines
    output$plotLow <- renderPlotly({
-      create_plot(inputLow1(), inputLow2(), input$deviceSelect1, input$deviceSelect2)
+      create_plot(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
    })
    output$plotMed <- renderPlotly({
-      create_plot(inputMed1(), inputMed2(), input$deviceSelect1, input$deviceSelect2)
+      create_plot(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
    })
    output$plotHig <- renderPlotly({
-      create_plot(inputHig1(), inputHig2(), input$deviceSelect1, input$deviceSelect2)
+      create_plot(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
    })
    
    # render plots with residuas
    output$plotResiLow <- renderPlotly({
-      create_resi_plot(residuaLow())
+      create_resi_plot(filteredInputLow())
    })
    output$plotResiMed <- renderPlotly({
-      create_resi_plot(residuaMed())
+      create_resi_plot(filteredInputMed())
    })
    output$plotResiHig <- renderPlotly({
-      create_resi_plot(residuaHig())
+      create_resi_plot(filteredInputHig())
    })
    
    output$boxPlotLow <- renderPlotly({
-      create_box_plot(residuaLow())
+      create_box_plot(inputLowOutliers())
    })
    output$boxPlotMed <- renderPlotly({
-      create_box_plot(residuaMed())
+      create_box_plot(inputMedOutliers())
    })
    output$boxPlotHig <- renderPlotly({
-      create_box_plot(residuaHig())
+      create_box_plot(inputHigOutliers())
    })
    
    output$BAPlotLow <- renderPlotly({
-      create_bland_altman_plot(inputLow1(), inputLow2(), residuaLow())
+      create_bland_altman_plot(filteredInputLow())
    })
    output$BAPlotMed <- renderPlotly({
-      create_bland_altman_plot(inputMed1(), inputMed2(), residuaMed())
+      create_bland_altman_plot(filteredInputMed())
    })
    output$BAPlotHig <- renderPlotly({
-      create_bland_altman_plot(inputHig1(), inputHig2(), residuaHig())
+      create_bland_altman_plot(filteredInputHig())
    })
 }
