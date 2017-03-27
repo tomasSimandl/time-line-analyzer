@@ -3,64 +3,64 @@ library(anytime)
 library(data.table)
 library(plotly)
 library(shinyjs)
+library(XML)
 
 # =================================================================================================================================
 # ========================================================= DATA READING ==========================================================
 # =================================================================================================================================
 
 load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, timeShift){
-   if(is.null(file) || is.null(startTime) || is.null(endTime) || is.null(timeInterval)) return(NULL)
+   if(is.null(file) || is.null(startTime) || is.null(endTime) || !is.numeric(timeInterval) || !is.numeric(timeShift)) return(NULL)
    
-   data <- switch(deviceSelect,
-      chest_strap = load_chest_strap_csv(file, timeShift),
-      garmin = load_garmin_tcx(file, timeShift),
-      basis = load_basis_csv(file, timeShift),
-      fitbit = load_fitbit_csv(file, timeShift),
-      return(NULL))
+   tryResult <- try(data <- switch(deviceSelect,
+                  chest_strap = load_chest_strap_csv(file, timeShift),
+                  garmin = load_garmin_tcx(file, timeShift),
+                  basis = load_basis_csv(file, timeShift),
+                  fitbit = load_fitbit_csv(file, timeShift),
+                  return(NULL)), silent = TRUE)
+   if(class(tryResult) == "try-error") return(NULL)
    
    data_sampling(data, get_time(startTime), get_time(endTime), timeInterval)
-   
 }
 
 load_garmin_tcx <- function(file, timeShift){
-   if(is.null(file)) return(NULL)
-   
    soubor <- xmlParse(file)
+   
    data <- xmlToDataFrame(getNodeSet(soubor, "//ns:Trackpoint", "ns"))
-   data.table(time = as.numeric(format(strptime(x = data$Time, format = "%Y-%m-%dT%H:%M:%S"), format = "%s")) + timeShift, bpm = as.numeric(as.character(data$HeartRateBpm)))
+   data.table(time = as.numeric(format(strptime(x = data$Time, format = "%Y-%m-%dT%H:%M:%S"), format = "%s")) + timeShift, bpm = as.numeric(as.character(data$HeartRateBpm))) # TODO
 }
 
 load_basis_csv <- function(file, timeShift){
    columnsNames <- c("", "time", "", "", "bpm", "", "")
    
-   data <- load_csv(file, columnsNames, header = TRUE)
+   data <- read.csv(file, col.names = columnsNames, header = TRUE)
+   
    data.table(time = as.numeric(format(as.POSIXct(data$time), format = "%s")) + timeShift, bpm = data$bpm)
 }
 
 load_fitbit_csv <- function(file, timeShift){
    columnsNames <- c("date", "time", "bpm")
    
-   data <- load_csv(file, columnsNames, header = FALSE)
+   data <- read.csv(file, col.names = columnsNames, header = FALSE)
+   
    data.table(time = as.numeric(format(as.POSIXct(paste(data$date, data$time, sep = " ")), format = "%s")) + timeShift, bpm = data$bpm)
 }
 
 load_chest_strap_csv <- function(file, timeShift) {
    columnsNames <- c("time", "", "bpm", "", "", "", "", "", "")
    
-   data <- load_csv(file, columnsNames, header = FALSE)
-   data_by_sec <- data.table(time = floor(data$time/1000) + timeShift, bpm = data$bpm)[, mean(bpm), by=time]
-   data.table(time = data_by_sec$time, bpm = data_by_sec$V1) # TODO
-}
-
-load_csv <- function(file, columnsNames, header = FALSE) {
-   if(is.null(file)) return(NULL)
+   data <- read.csv(file, col.names = columnsNames, header = FALSE)
    
-   read.csv(file, header = header, col.names = columnsNames)
+   data_by_sec <- data.table(time = floor(data$time/1000) + timeShift, bpm = data$bpm)[, mean(bpm), by=time]
+   setnames(data_by_sec, c("time", "V1"), c("time", "bpm"))
+   data_by_sec
 }
 
 data_sampling <- function(data, startTime, endTime, timeInterval){
+   if(is.null(data) || nrow(data) == 0) return(NULL)
    
    data <- data[time >= startTime]
+   if(nrow(data) == 0) return(NULL)
    
    sum <- 0
    counter <- 0
@@ -70,6 +70,7 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
    size <- length(sequence)
    DT <- data.table(time = sequence, bpm = numeric(size))
    
+   print(nrow(data))
    for (n in 1:nrow(data)){
       curTime <- data[n]$time
       if(curTime < startTime) next
@@ -259,13 +260,13 @@ checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inp
 
 toggleTabs <- function(show = TRUE){
    if(show){
-      show(selector = "#navbar *")
+      shinyjs::show(selector = "#navbar *", anim = TRUE)
    } else {
-      hide(selector = "#navbar li a[data-value=tabLow]")
-      hide(selector = "#navbar li a[data-value=tabMedium]")
-      hide(selector = "#navbar li a[data-value=tabHigh]")
-      hide(selector = "#navbar li a[data-value=tabSummary]")
-      hide(selector = "#navbar li a[data-value=tabTables]")
+      shinyjs::hide(selector = "#navbar li a[data-value=tabLow]")
+      shinyjs::hide(selector = "#navbar li a[data-value=tabMedium]")
+      shinyjs::hide(selector = "#navbar li a[data-value=tabHigh]")
+      shinyjs::hide(selector = "#navbar li a[data-value=tabSummary]")
+      shinyjs::hide(selector = "#navbar li a[data-value=tabTables]")
    }
 }
 
@@ -332,6 +333,8 @@ function(input, output, session) {
    observeEvent(input$submitBtn, {
       shinyjs::removeClass(selector = ".divs", class = "color_red")
       
+      shinyjs::html(id = "submitBtn", html = "<img src=\"loading.svg\" style=\"width: 20px;\">")
+      
       message <- ""
       fail <- FALSE
       
@@ -354,6 +357,17 @@ function(input, output, session) {
       message <- paste1(message, checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", "Measurement interval for medium load"))
       message <- paste1(message, checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", "Measurement interval for high load"))
       
+      if(is.null(filteredInputLow()) || nrow(filteredInputLow()) == 0) {
+         message <- paste(message, "- Input data are incorrect. Can not make the calculations for low load", sep = "\n")
+      }
+      if(is.null(filteredInputMed()) || nrow(filteredInputMed()) == 0) {
+         message <- paste(message, "- Input data are incorrect. Can not make the calculations for medium load", sep = "\n")
+      }
+      if(is.null(filteredInputHig()) || nrow(filteredInputHig()) == 0) {
+         message <- paste(message, "- Input data are incorrect. Can not make the calculations for high load", sep = "\n")
+      }
+      
+      shinyjs::html(id = "submitBtn", html = "Submit")
       if(message == ""){
          toggleTabs()
          updateNavbarPage(session, "navbar", selected = "tabSummary")
@@ -391,15 +405,6 @@ function(input, output, session) {
    
    # load files when change associated fileInput
    inputLow1 <- reactive({
-      validate(
-         need(!is.null(input$inFileLow1) && !is.null(input$inFileLow2), "Please select data sets for low load"),
-         need(input$startMeasLow != "", "Please select start of measurement for low load"),
-         need(input$endMeasLow != "", "Please select end of measurement for low load"),
-         need(input$timeIntervalInput != "", "Please select time interval for data sampling"),
-         need(input$timeZone1 != "", "Please select time zone shift for first data set"),
-         need(input$timeZone2 != "", "Please select time zone shift for second data set")
-      )
-      
       load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$startMeasLow, input$endMeasLow, input$timeIntervalInput,  input$timeZone1*3600)
    })
    inputMed1 <- reactive({
@@ -435,6 +440,7 @@ function(input, output, session) {
       time_line1 <- inputLow1()
       time_line2 <- inputLow2()
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
+      
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
       filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
