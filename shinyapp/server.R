@@ -276,6 +276,9 @@ function(input, output, session) {
    filteredInputHig <- reactive({
       filter_data(inputHigOutliers(), input$otherOptions)
    })
+   filteredInputSummary <- reactive({
+      filter_data(inputSummaryOutliers(), input$otherOptions) 
+   })
    
    inputLowOutliers <- reactive({
       time_line1 <- inputLow1()
@@ -301,6 +304,9 @@ function(input, output, session) {
       data <- merge(x = time_line1, y = time_line2, by = "time")
       filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
+   inputSummaryOutliers <- reactive({
+      rbind(inputLowOutliers(), inputMedOutliers(), inputHigOutliers())
+   })
    
    otherOptions <- reactive({
       input$otherOptions
@@ -315,6 +321,9 @@ function(input, output, session) {
    output$calculationHig <-renderTable(colnames = FALSE,{
       calculate_calculation(filteredInputHig())
    })
+   output$calculationSum <-renderTable(colnames = FALSE,{
+      calculate_calculation(filteredInputSummary())
+   })
    
    output$quantileLow <- renderTable(align = "lcccccc", width = "100%", {
       calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
@@ -324,6 +333,9 @@ function(input, output, session) {
    })
    output$quantileHig <- renderTable(align = "lcccccc", width = "100%", {
       calculate_quantile(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
+   })
+   output$quantileSum <- renderTable(align = "lcccccc", width = "100%", {
+      calculate_quantile(filteredInputSummary(), input$deviceSelect1, input$deviceSelect2)
    })
    
    # render plots with two lines
