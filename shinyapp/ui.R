@@ -11,7 +11,7 @@ shinyUI(list(
       tags$script(
          "Shiny.addCustomMessageHandler(\"allertMessage\",
             function(message) {
-               alert(JSON.stringify(message));
+               alert(message);
             }
          );"
       ),

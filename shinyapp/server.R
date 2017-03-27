@@ -205,28 +205,33 @@ create_table <- function(data, device1, device2){
 # =========================================================== VALIDATION ==========================================================
 # =================================================================================================================================
 
-checkInput <- function(inputElement, inputId, success){
+checkInput <- function(inputElement, inputId, fail){
    if(is.null(inputElement)){
       shinyjs::addClass(id = inputId, class = "color_red")
-      return(FALSE)
+      return(TRUE)
    }
-   return(success)
+   return(fail)
 }
 
-checkNumericInput <- function(inputElement, inputId, success, minValue, maxValue){
-   if(!is.numeric(inputElement) || inputElement > maxValue || inputElement < minValue){
+checkNumericInput <- function(inputElement, inputId, inputName, minValue, maxValue){
+   message <- ""
+   if(!is.numeric(inputElement)) {
+      message <- paste("- Element", inputName, "contains non numeric value.")
+   } else if(inputElement > maxValue || inputElement < minValue){
+      message <- paste("- Value of element", inputName, "is out of range. Expected: <", minValue, ",", maxValue ,">")
+   }
+   if(message != ""){
       shinyjs::addClass(id = inputId, class = "color_red")
-      return(FALSE)
    }
-   return(success)
+   return(message)
 }
 
-checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inputEndId, success){
-   local_success <- TRUE
-   local_success <- checkInput(inputStartElement, inputStartId, local_success)
-   local_success <- checkInput(inputEndElement, inputEndId, local_success)
-   if(!local_success){
-      return(FALSE)
+checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inputEndId, inputsName){
+   fail <- FALSE
+   fail <- checkInput(inputStartElement, inputStartId, fail)
+   fail <- checkInput(inputEndElement, inputEndId, fail)
+   if(fail){
+      return(paste("- Please fill", inputsName))
    }
    
    startTime <- get_time(inputStartElement)
@@ -234,23 +239,22 @@ checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inp
    
    if(is.na(startTime)){
       shinyjs::addClass(id = inputStartId, class = "color_red")
-      local_success <- FALSE
+      fail <- TRUE
    }
    if(is.na(endTime)){
       shinyjs::addClass(id = inputEndId, class = "color_red")
-      local_success <- FALSE
+      fail <- TRUE
    }
-   if(!local_success){
-      return(FALSE)
+   if(fail){
+      return(paste("-", inputsName, "have incorrect format. Expected: dd.mm.yyyy HH:MM:SS"))
    }
    
    if(startTime > endTime){
       shinyjs::addClass(id = inputStartId, class = "color_red")
       shinyjs::addClass(id = inputEndId, class = "color_red")
-      return(FALSE)
+      return(paste("-", inputsName, "is incorrect. First value is bigger then second."))
    }
-   
-   return(success)
+   return("")
 }
 
 toggleTabs <- function(show = TRUE){
@@ -262,6 +266,18 @@ toggleTabs <- function(show = TRUE){
       hide(selector = "#navbar li a[data-value=tabHigh]")
       hide(selector = "#navbar li a[data-value=tabSummary]")
       hide(selector = "#navbar li a[data-value=tabTables]")
+   }
+}
+
+paste1 <- function(message1, message2){
+   if (message1 != "" && message2 != ""){
+      return(paste(message1, message2, sep = "\n"))
+   } else{
+      if (message1 != ""){
+         return(message1)
+      } else {
+         return(message2)
+      }
    }
 }
 
@@ -309,41 +325,67 @@ create_box_plot <- function(time_lines){
 # =================================================================================================================================
 function(input, output, session) {
    
+   toggleTabs(FALSE)
    print("--------------------------------------------- start --------------------------------------------------------")
    
    # observe submit button to switch on next panel in navbar
    observeEvent(input$submitBtn, {
       shinyjs::removeClass(selector = ".divs", class = "color_red")
-      success <- TRUE
-      print(input$timeZone1)
-      success <- checkInput(input$inFileLow1, "divInputLow1", success)
-      success <- checkInput(input$inFileLow2, "divInputLow2", success)
-      success <- checkInput(input$inFileMed1, "divInputMed1", success)
-      success <- checkInput(input$inFileMed2, "divInputMed2", success)
-      success <- checkInput(input$inFileHig1, "divInputHig1", success)
-      success <- checkInput(input$inFileHig2, "divInputHig2", success)
       
-      success <- checkNumericInput(input$timeZone1, "divTimeZone1", success, -12, 14)
-      success <- checkNumericInput(input$timeZone2, "divTimeZone2", success, -12, 14)
+      message <- ""
+      fail <- FALSE
       
-      success <- checkNumericInput(input$timeShiftLow, "divTimeShiftLow", success, -3600, 3600)
-      success <- checkNumericInput(input$timeShiftMed, "divTimeShiftMed", success, -3600, 3600)
-      success <- checkNumericInput(input$timeShiftHig, "divTimeShiftHig", success, -3600, 3600)
+      fail <- checkInput(input$inFileLow1, "divInputLow1", fail)
+      fail <- checkInput(input$inFileLow2, "divInputLow2", fail)
+      fail <- checkInput(input$inFileMed1, "divInputMed1", fail)
+      fail <- checkInput(input$inFileMed2, "divInputMed2", fail)
+      fail <- checkInput(input$inFileHig1, "divInputHig1", fail)
+      fail <- checkInput(input$inFileHig2, "divInputHig2", fail)
+      if(fail){
+         message <- "- Please fill empty inputs!"
+      }
+      message <- paste1(message, checkNumericInput(input$timeZone1, "divTimeZone1", success, -12, 14))
+      message <- paste1(message, checkNumericInput(input$timeZone2, "divTimeZone2", success, -12, 14))
+      message <- paste1(message, checkNumericInput(input$timeShiftLow, "divTimeShiftLow", "Time Shift Low", -3600, 3600))
+      message <- paste1(message, checkNumericInput(input$timeShiftMed, "divTimeShiftMed", "Time Shift Medium", -3600, 3600))
+      message <- paste1(message, checkNumericInput(input$timeShiftHig, "divTimeShiftHig", "Time Shift High", -3600, 3600))
+      message <- paste1(message, checkNumericInput(input$timeIntervalInput, "divTimeIntervalInput", "Time Sampling Interval", 1, 60))
+      message <- paste1(message, checkTimeInput(input$startMeasLow, input$endMeasLow, "divStartMeasLow", "divEndMeasLow", "Measurement interval for low load"))
+      message <- paste1(message, checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", "Measurement interval for medium load"))
+      message <- paste1(message, checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", "Measurement interval for high load"))
       
-      success <- checkNumericInput(input$timeIntervalInput, "divTimeIntervalInput", success, 1, 60)
-      
-      success <-checkTimeInput(input$startMeasLow, input$endMeasLow, "divStartMeasLow", "divEndMeasLow", success)
-      success <-checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", success)
-      success <-checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", success)
-      
-      
-      if(success){
+      if(message == ""){
          toggleTabs()
          updateNavbarPage(session, "navbar", selected = "tabSummary")
       } else {
          toggleTabs(FALSE)
-         session$sendCustomMessage(type = 'allertMessage', message = "Please fill inputs")
+         session$sendCustomMessage(type = 'allertMessage', message = message)
       }
+   })
+   
+   observeEvent({
+      input$inFileLow1
+      input$inFileLow2
+      input$inFileMed1
+      input$inFileMed2
+      input$inFileHig1
+      input$inFileLow2
+      input$deviceSelect1
+      input$deviceSelect2
+      input$timeZone1
+      input$timeZone2
+      input$timeIntervalInput
+      input$startMeasLow
+      input$endMeasLow
+      input$startMeasMed
+      input$endMeasMed
+      input$startMeasHig
+      input$endMeasHig
+      input$timeShiftLow
+      input$timeShiftMed
+      input$timeShiftHig
+   }, {
+      toggleTabs(FALSE)
    })
    
    
