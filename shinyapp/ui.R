@@ -2,41 +2,70 @@ library(shiny)
 library(shinythemes)
 library(plotly)
 library(shinyTime)
+library(shinyjs)
 
 
-shinyUI(
+shinyUI(list(
+   tags$head(
+      useShinyjs(),
+      tags$script(
+         "Shiny.addCustomMessageHandler(\"allertMessage\",
+            function(message) {
+               alert(JSON.stringify(message));
+            }
+         );"
+      ),
+      tags$style(".color_red{ color: red }")
+   ),
    navbarPage("Data Analyzer", id = "navbar", theme = shinytheme("united"),
-              
               # Panel for file input
               tabPanel("File input", value = "tabFileInput",
                        wellPanel(
                           h2("First data set"),
                           fluidRow(
                              column(width = 6, selectInput(inputId = "deviceSelect1", label = "Choose a device", c("Chest strap" = "chest_strap", "Garmin" = "garmin", "Basis" = "basis", "Fitbit" = "fitbit"))),
-                             column(width = 6, numericInput(inputId = "timeZone1", label = "Time zone shift [h]", value = 0, min = -12, max = 14, step = 0.25))
+                             column(width = 6,
+                                    div(id = "divTimeZone1", class = "divs",
+                                        numericInput(inputId = "timeZone1", label = "Time zone shift [h]", value = 0, min = -12, max = 14, step = 0.25)))
                           ),
                           fluidRow(
-                             column(width = 4,fileInput(inputId = "inFileLow1", label = "Low", multiple = FALSE)),
-                             column(width = 4,fileInput(inputId = "inFileMed1", label = "Medium", multiple = FALSE)),
-                             column(width = 4,fileInput(inputId = "inFileHig1", label = "High", multiple = FALSE))
+                             column(width = 4,
+                                    div(id = "divInputLow1", class = "divs",
+                                        fileInput(inputId = "inFileLow1", label = "Low", multiple = FALSE))),
+                             column(width = 4,
+                                    div(id = "divInputMed1", class = "divs",
+                                        fileInput(inputId = "inFileMed1", label = "Medium", multiple = FALSE))),
+                             column(width = 4,
+                                    div(id = "divInputHig1", class = "divs",
+                                        fileInput(inputId = "inFileHig1", label = "High", multiple = FALSE)))
                           )
                        ), 
                        wellPanel(
                           h2("Second data set"),
                           fluidRow(
                              column(width = 6, selectInput(inputId = "deviceSelect2", label = "Choose a device", c("Chest strap" = "chest_strap", "Garmin" = "garmin", "Basis" = "basis", "Fitbit" = "fitbit"))), 
-                             column(width = 6, numericInput(inputId = "timeZone2", label = "Time zone shift [h]", value = 0, min = -12, max = 14, step = 0.25))
+                             column(width = 6,
+                                    div(id = "divTimeZone2", class = "divs",
+                                        numericInput(inputId = "timeZone2", label = "Time zone shift [h]", value = 0, min = -12, max = 14, step = 0.25)))
                           ),
                           fluidRow(
-                             column(width = 4,fileInput(inputId = "inFileLow2", label = "Low", multiple = FALSE)),
-                             column(width = 4,fileInput(inputId = "inFileMed2", label = "Medium", multiple = FALSE)),
-                             column(width = 4,fileInput(inputId = "inFileHig2", label = "High", multiple = FALSE))
+                             column(width = 4,
+                                    div(id = "divInputLow2", class = "divs",
+                                       fileInput(inputId = "inFileLow2", label = "Low", multiple = FALSE))),
+                             column(width = 4,
+                                    div(id = "divInputMed2", class = "divs",
+                                        fileInput(inputId = "inFileMed2", label = "Medium", multiple = FALSE))),
+                             column(width = 4,
+                                    div(id = "divInputHig2", class = "divs",
+                                        fileInput(inputId = "inFileHig2", label = "High", multiple = FALSE)))
                           )
                        ),
                        wellPanel(
                           h2("Setting"),
                           fluidRow(
-                             column(width = 4, numericInput(inputId = "timeIntervalInput", label = "Choose interval for data sampling [s]", value = 1, min = 1, max = 60)),
+                             column(width = 4,
+                                    div(id = "divTimeIntervalInput", class = "divs",
+                                        numericInput(inputId = "timeIntervalInput", label = "Choose interval for data sampling [s]", value = 1, min = 1, max = 60))),
                              column(width = 4, checkboxGroupInput("otherOptions", "Options:", inline = TRUE, c("Ignore zero values" = "izv", "Ignore outliers" = "io")))
                           ),
                           fluidRow(
@@ -45,17 +74,35 @@ shinyUI(
                              column(width = 4, h4("Measurement interval for high load"))
                           ),
                           fluidRow(
-                             column(width = 2, textInput(inputId = "startMeasLow", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S"))),
-                             column(width = 2, textInput(inputId = "endMeasLow", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S"))),
-                             column(width = 2, textInput(inputId = "startMeasMed", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S"))),
-                             column(width = 2, textInput(inputId = "endMeasMed", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S"))),
-                             column(width = 2, textInput(inputId = "startMeasHig", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S"))),
-                             column(width = 2, textInput(inputId = "endMeasHig", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))
+                             column(width = 2,
+                                    div(id = "divStartMeasLow", class = "divs",
+                                        textInput(inputId = "startMeasLow", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                             column(width = 2,
+                                    div(id = "divEndMeasLow", class = "divs",
+                                        textInput(inputId = "endMeasLow", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                             column(width = 2,
+                                    div(id = "divStartMeasMed", class = "divs",
+                                        textInput(inputId = "startMeasMed", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                             column(width = 2,
+                                    div(id = "divEndMeasMed", class = "divs",
+                                        textInput(inputId = "endMeasMed", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                             column(width = 2,
+                                    div(id = "divStartMeasHig", class = "divs",
+                                        textInput(inputId = "startMeasHig", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                             column(width = 2,
+                                    div(id = "divEndMeasHig", class = "divs",
+                                        textInput(inputId = "endMeasHig", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S"))))
                           ),
                           fluidRow(
-                             column(width = 4, numericInput(inputId = "timeShiftLow", label = "Time shift for low load [s]", value = 0, min = -1000, max = 1000)),
-                             column(width = 4, numericInput(inputId = "timeShiftMed", label = "Time shift for low load [s]", value = 0, min = -1000, max = 1000)),
-                             column(width = 4, numericInput(inputId = "timeShiftHig", label = "Time shift for low load [s]", value = 0, min = -1000, max = 1000))
+                             column(width = 4,
+                                    div(id = "divTimeShiftLow", class = "divs",
+                                        numericInput(inputId = "timeShiftLow", label = "Time shift for low load [s]", value = 0, min = -3600, max = 3600))),
+                             column(width = 4,
+                                    div(id = "divTimeShiftMed", class = "divs",
+                                        numericInput(inputId = "timeShiftMed", label = "Time shift for low load [s]", value = 0, min = -3600, max = 3600))),
+                             column(width = 4,
+                                    div(id = "divTimeShiftHig", class = "divs",
+                                        numericInput(inputId = "timeShiftHig", label = "Time shift for low load [s]", value = 0, min = -3600, max = 3600)))
                           )
                        ),
                        wellPanel(
@@ -158,5 +205,6 @@ shinyUI(
                           tabPanel("High", tableOutput('tableHig'))
                        )
               )
+   )
    )
 ) 

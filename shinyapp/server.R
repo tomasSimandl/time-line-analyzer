@@ -2,12 +2,15 @@ library(shiny)
 library(anytime)
 library(data.table)
 library(plotly)
+library(shinyjs)
 
 # =================================================================================================================================
 # ========================================================= DATA READING ==========================================================
 # =================================================================================================================================
 
 load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, timeShift){
+   if(is.null(file) || is.null(startTime) || is.null(endTime) || is.null(timeInterval)) return(NULL)
+   
    data <- switch(deviceSelect,
       chest_strap = load_chest_strap_csv(file, timeShift),
       garmin = load_garmin_tcx(file, timeShift),
@@ -107,6 +110,7 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
 }
 
 filter_data <- function(data, options, outliers = TRUE){
+   if(is.null(data)) return(NULL)
    if(is.null(options)) return(data)
    
    ignoreZeroValues  <- 'izv' %in% options
@@ -190,9 +194,75 @@ get_time <- function(strTime) {
 }
 
 create_table <- function(data, device1, device2){
+   if(is.null(data)) return(NULL)
+   
    table <- data.table(format(anytime(data$time), format = "%d.%m.%Y %H:%M:%S"), data$bpm.x, data$bpm.y, data$residues)
    setnames(table, c("V1", "V2", "V3", "V4"), c("Time", paste0(device1, " [BPM]"), paste0(device2, " [BPM]"), "Residuas [BPM]"))
    table
+}
+
+# =================================================================================================================================
+# =========================================================== VALIDATION ==========================================================
+# =================================================================================================================================
+
+checkInput <- function(inputElement, inputId, success){
+   if(is.null(inputElement)){
+      shinyjs::addClass(id = inputId, class = "color_red")
+      return(FALSE)
+   }
+   return(success)
+}
+
+checkNumericInput <- function(inputElement, inputId, success, minValue, maxValue){
+   if(!is.numeric(inputElement) || inputElement > maxValue || inputElement < minValue){
+      shinyjs::addClass(id = inputId, class = "color_red")
+      return(FALSE)
+   }
+   return(success)
+}
+
+checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inputEndId, success){
+   local_success <- TRUE
+   local_success <- checkInput(inputStartElement, inputStartId, local_success)
+   local_success <- checkInput(inputEndElement, inputEndId, local_success)
+   if(!local_success){
+      return(FALSE)
+   }
+   
+   startTime <- get_time(inputStartElement)
+   endTime <- get_time(inputEndElement)
+   
+   if(is.na(startTime)){
+      shinyjs::addClass(id = inputStartId, class = "color_red")
+      local_success <- FALSE
+   }
+   if(is.na(endTime)){
+      shinyjs::addClass(id = inputEndId, class = "color_red")
+      local_success <- FALSE
+   }
+   if(!local_success){
+      return(FALSE)
+   }
+   
+   if(startTime > endTime){
+      shinyjs::addClass(id = inputStartId, class = "color_red")
+      shinyjs::addClass(id = inputEndId, class = "color_red")
+      return(FALSE)
+   }
+   
+   return(success)
+}
+
+toggleTabs <- function(show = TRUE){
+   if(show){
+      show(selector = "#navbar *")
+   } else {
+      hide(selector = "#navbar li a[data-value=tabLow]")
+      hide(selector = "#navbar li a[data-value=tabMedium]")
+      hide(selector = "#navbar li a[data-value=tabHigh]")
+      hide(selector = "#navbar li a[data-value=tabSummary]")
+      hide(selector = "#navbar li a[data-value=tabTables]")
+   }
 }
 
 # =================================================================================================================================
@@ -239,16 +309,55 @@ create_box_plot <- function(time_lines){
 # =================================================================================================================================
 function(input, output, session) {
    
+   print("--------------------------------------------- start --------------------------------------------------------")
+   
    # observe submit button to switch on next panel in navbar
    observeEvent(input$submitBtn, {
-      if(is.null(inputLow1()) || is.null(inputLow2()) || is.null(inputMed1()) || is.null(inputMed2()) || is.null(inputHig1()) || is.null(inputHig2())){
-         return(NULL)
+      shinyjs::removeClass(selector = ".divs", class = "color_red")
+      success <- TRUE
+      print(input$timeZone1)
+      success <- checkInput(input$inFileLow1, "divInputLow1", success)
+      success <- checkInput(input$inFileLow2, "divInputLow2", success)
+      success <- checkInput(input$inFileMed1, "divInputMed1", success)
+      success <- checkInput(input$inFileMed2, "divInputMed2", success)
+      success <- checkInput(input$inFileHig1, "divInputHig1", success)
+      success <- checkInput(input$inFileHig2, "divInputHig2", success)
+      
+      success <- checkNumericInput(input$timeZone1, "divTimeZone1", success, -12, 14)
+      success <- checkNumericInput(input$timeZone2, "divTimeZone2", success, -12, 14)
+      
+      success <- checkNumericInput(input$timeShiftLow, "divTimeShiftLow", success, -3600, 3600)
+      success <- checkNumericInput(input$timeShiftMed, "divTimeShiftMed", success, -3600, 3600)
+      success <- checkNumericInput(input$timeShiftHig, "divTimeShiftHig", success, -3600, 3600)
+      
+      success <- checkNumericInput(input$timeIntervalInput, "divTimeIntervalInput", success, 1, 60)
+      
+      success <-checkTimeInput(input$startMeasLow, input$endMeasLow, "divStartMeasLow", "divEndMeasLow", success)
+      success <-checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", success)
+      success <-checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", success)
+      
+      
+      if(success){
+         toggleTabs()
+         updateNavbarPage(session, "navbar", selected = "tabSummary")
+      } else {
+         toggleTabs(FALSE)
+         session$sendCustomMessage(type = 'allertMessage', message = "Please fill inputs")
       }
-      updateNavbarPage(session, "navbar", selected = "tabSummary")
    })
+   
    
    # load files when change associated fileInput
    inputLow1 <- reactive({
+      validate(
+         need(!is.null(input$inFileLow1) && !is.null(input$inFileLow2), "Please select data sets for low load"),
+         need(input$startMeasLow != "", "Please select start of measurement for low load"),
+         need(input$endMeasLow != "", "Please select end of measurement for low load"),
+         need(input$timeIntervalInput != "", "Please select time interval for data sampling"),
+         need(input$timeZone1 != "", "Please select time zone shift for first data set"),
+         need(input$timeZone2 != "", "Please select time zone shift for second data set")
+      )
+      
       load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$startMeasLow, input$endMeasLow, input$timeIntervalInput,  input$timeZone1*3600)
    })
    inputMed1 <- reactive({
@@ -386,7 +495,6 @@ function(input, output, session) {
          ""
       }
    })
-   
    
    output$tableLow <- renderTable(align = "cccc", width = "100%", {
       create_table(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
