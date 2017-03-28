@@ -429,32 +429,32 @@ function(input, output, session) {
    # load files on inputs change
    inputLow1 <- reactive({
       data <- load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$startMeasLow, input$endMeasLow, input$timeIntervalInput,  input$timeZone1*3600)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputMed1 <- reactive({
       data <- load_data(file = input$inFileMed1$datapath, deviceSelect = input$deviceSelect1, input$startMeasMed, input$endMeasMed, input$timeIntervalInput,  input$timeZone1*3600)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputHig1 <- reactive({
       data <- load_data(file = input$inFileHig1$datapath, deviceSelect = input$deviceSelect1, input$startMeasHig, input$endMeasHig, input$timeIntervalInput,  input$timeZone1*3600)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputLow2 <- reactive({
       data <- load_data(file = input$inFileLow2$datapath, deviceSelect = input$deviceSelect2, input$startMeasLow, input$endMeasLow, input$timeIntervalInput, input$timeShiftLow + (input$timeZone2*3600))
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputMed2 <- reactive({
       data <- load_data(file = input$inFileMed2$datapath, deviceSelect = input$deviceSelect2, input$startMeasMed, input$endMeasMed, input$timeIntervalInput, input$timeShiftMed + (input$timeZone2*3600))
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputHig2 <- reactive({
       data <- load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$startMeasHig, input$endMeasHig, input$timeIntervalInput, input$timeShiftHig + (input$timeZone2*3600))
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    
@@ -470,7 +470,7 @@ function(input, output, session) {
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
       data <- filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputMedOutliers <- reactive({
@@ -483,7 +483,7 @@ function(input, output, session) {
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
       data <- filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputHigOutliers <- reactive({
@@ -496,7 +496,7 @@ function(input, output, session) {
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
       data <- filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputSummaryOutliers <- reactive({
@@ -506,22 +506,22 @@ function(input, output, session) {
    # filter data from input*Outliers based on input$otherOptions
    filteredInputLow <- reactive({
       data <- filter_data(inputLowOutliers(), input$otherOptions)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    filteredInputMed <- reactive({
       data <- filter_data(inputMedOutliers(), input$otherOptions)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    filteredInputHig <- reactive({
       data <- filter_data(inputHigOutliers(), input$otherOptions)
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    filteredInputSummary <- reactive({
       data <- filter_data(inputSummaryOutliers(), input$otherOptions) 
-      if(nrow(data) == 0) return(NULL)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    
