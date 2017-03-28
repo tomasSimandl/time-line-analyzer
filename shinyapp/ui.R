@@ -1,7 +1,6 @@
 library(shiny)
 library(shinythemes)
 library(plotly)
-library(shinyTime)
 library(shinyjs)
 
 shinyUI(list(
@@ -44,7 +43,7 @@ shinyUI(list(
                           fluidRow(
                              column(width = 4,
                                     div(id = "divInputLow2", class = "divs",
-                                       fileInput(inputId = "inFileLow2", label = "Low", multiple = FALSE))),
+                                        fileInput(inputId = "inFileLow2", label = "Low", multiple = FALSE))),
                              column(width = 4,
                                     div(id = "divInputMed2", class = "divs",
                                         fileInput(inputId = "inFileMed2", label = "Medium", multiple = FALSE))),
@@ -103,7 +102,7 @@ shinyUI(list(
                        )
               ),
               
-              tabPanel("LOW", value = "tabLow",
+              tabPanel("Low", value = "tabLow",
                        h1("Compare of two time lines for low load"),
                        wellPanel(
                           h2("Calculations"),
@@ -111,25 +110,30 @@ shinyUI(list(
                           tableOutput("calculationLow")
                        ),
                        wellPanel(
-                          h2("Plot comparing low BPMs"),
+                          h2("Plot comparing measurement from two devices"),
                           plotlyOutput("plotLow")
                        ),
                        wellPanel(
-                          h2("Plot of residues for low BPMs"),
+                          h2("Plot of residues"),
+                          p("Plot showing difference of two measurement from different inputs, which means size of error."),
                           plotlyOutput("plotResiLow")
                        ),
                        wellPanel(
-                          h2("Bland-altman plot"),
+                          h2("Bland-Altman plot"),
+                          p("Bland-Altman plot showing comprasion of two measurement A and B. When is A similar to B, points are
+                             close to line mean."),
                           plotlyOutput("BAPlotLow")
                        ),
                        wellPanel(
-                          h2("Box plot showing outliers"),
+                          h2("Box plot"),
+                          p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
+                            outliers of residues, which means outliers of difference of two measurement from different inputs."),
                           plotlyOutput("boxPlotLow"),
                           span(textOutput("boxPlotWarning1"), style="color:red")
                        )
               ),
               
-              tabPanel("MEDIUM", value = "tabMedium",
+              tabPanel("Medium", value = "tabMedium",
                        h1("Compare of two time lines for medium load"),
                        wellPanel(
                           h2("Calculations"),
@@ -137,25 +141,30 @@ shinyUI(list(
                           tableOutput("calculationMed")
                        ),
                        wellPanel(
-                          h2("Plot comparing medium BPMs"),
+                          h2("Plot comparing measurement from two devices"),
                           plotlyOutput("plotMed")
                        ),
                        wellPanel(
-                          h2("Plot of residues for medium BPMs"),
+                          h2("Plot of residues"),
+                          p("Plot showing difference of two measurement from different inputs, which means size of error."),
                           plotlyOutput("plotResiMed")
                        ),
                        wellPanel(
-                          h2("Bland-altman plot"),
+                          h2("Bland-Altman plot"),
+                          p("Bland-Altman plot showing comprasion of two measurement A and B. When is A similar to B, points are
+                             close to line mean."),
                           plotlyOutput("BAPlotMed")
                        ),
                        wellPanel(
-                          h2("Box plot showing outliers"),
+                          h2("Box plot"),
+                          p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
+                            outliers of residues, which means outliers of difference of two measurement from different inputs."),
                           plotlyOutput("boxPlotMed"),
                           span(textOutput("boxPlotWarning2"), style="color:red")
                        )
               ),
               
-              tabPanel("HIGH", value = "tabHigh",
+              tabPanel("High", value = "tabHigh",
                        h1("Compare of two time lines for high load"),
                        wellPanel(
                           h2("Calculations"),
@@ -163,19 +172,24 @@ shinyUI(list(
                           tableOutput("calculationHig")
                        ),
                        wellPanel(
-                          h2("Plot comparing hight BPMs"),
+                          h2("Plot comparing measurement from two devices"),
                           plotlyOutput("plotHig")
                        ),
                        wellPanel(
-                          h2("Plot of residues for high BPMs"),
+                          h2("Plot of residues"),
+                          p("Plot showing difference of two measurement from different inputs, which means size of error."),
                           plotlyOutput("plotResiHig")
                        ),
                        wellPanel(
-                          h2("Bland-altman plot"),
+                          h2("Bland-Altman plot"),
+                          p("Bland-Altman plot showing comprasion of two measurement A and B. When is A similar to B, points are
+                             close to line mean."),
                           plotlyOutput("BAPlotHig")
                        ),
                        wellPanel(
-                          h2("Box plot showing outliers"),
+                          h2("Box plot"),
+                          p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
+                            outliers of residues, which means outliers of difference of two measurement from different inputs."),
                           plotlyOutput("boxPlotHig"),
                           span(textOutput("boxPlotWarning3"), style="color:red")
                        )
@@ -201,19 +215,19 @@ shinyUI(list(
               
               # panel about
               tabPanel("About", value = "tabAbout",
-                  div(id = "divAbout",
-                       wellPanel(
-                          h2("Quick overview"),
-                          p("This tool allows you to compare two measurement of heart beat divided to three
+                       div(id = "divAbout",
+                           wellPanel(
+                              h2("Quick overview"),
+                              p("This tool allows you to compare two measurement of heart beat divided to three
                              parts with difrent excersise. Comparison includes computing of corelation, standard
                              deviation, means, medians, quartils and minimal and maximal values. Next there are 
                              graphs for visualization of comparison."),
-                          h2("More informaton"),
-                          p("This tool was developed in the R programing language."),
-                          p("This work is part of bachelor thesis...")
+                              h2("More informaton"),
+                              p("This tool was developed in the R programing language."),
+                              p("This work is part of bachelor thesis...")
+                           )
                        )
-                  )
               )
    )
-   )
+)
 ) 
