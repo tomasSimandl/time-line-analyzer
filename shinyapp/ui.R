@@ -201,7 +201,18 @@ shinyUI(list(
               
               # panel about
               tabPanel("About", value = "tabAbout",
-                  "This work is part of bachelor thesis..."
+                  div(id = "divAbout",
+                       wellPanel(
+                          h2("Quick overview"),
+                          p("This tool allows you to compare two measurement of heart beat divided to three
+                             parts with difrent excersise. Comparison includes computing of corelation, standard
+                             deviation, means, medians, quartils and minimal and maximal values. Next there are 
+                             graphs for visualization of comparison."),
+                          h2("More informaton"),
+                          p("This tool was developed in the R programing language."),
+                          p("This work is part of bachelor thesis...")
+                       )
+                  )
               )
    )
    )

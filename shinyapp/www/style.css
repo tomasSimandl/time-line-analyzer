@@ -1,3 +1,9 @@
 .color_red{
    color: red;
 }
+
+#divAbout{
+   width: 70%;
+   margin: auto;
+   text-align: justify;
+}

@@ -6,9 +6,11 @@ library(shinyjs)
 library(XML)
 
 # =================================================================================================================================
-# ========================================================= DATA READING ==========================================================
+# ==================================================== DATA READING AND EDITING ===================================================
 # =================================================================================================================================
 
+# Check input values and decide which function will be used for loading a file. After success file load call function for data
+# sampling.
 load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, timeShift){
    if(is.null(file) || is.null(startTime) || is.null(endTime) || !is.numeric(timeInterval) || !is.numeric(timeShift)) return(NULL)
    
@@ -22,93 +24,83 @@ load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, time
    data_sampling(data, get_time(startTime), get_time(endTime), timeInterval)
 }
 
+# Load file in tcx format. Verify loaded data and return data.table with columns 'time' and 'bpm'.
 load_garmin_tcx <- function(file, timeShift){
    soubor <- xmlParse(file)
    
    data <- xmlToDataFrame(getNodeSet(soubor, "//ns:Trackpoint", "ns"))
-   data.table(time = as.numeric(format(strptime(x = data$Time, format = "%Y-%m-%dT%H:%M:%S"), format = "%s")) + timeShift, bpm = as.numeric(as.character(data$HeartRateBpm))) # TODO
+   time_vector <- as.numeric(format(strptime(x = data$Time, format = "%Y-%m-%dT%H:%M:%S"), format = "%s"))  + timeShift
+   bpm_vector <- as.numeric(as.character(data$HeartRateBpm))
+   
+   if(length(time_vector[is.na(time_vector)]) + length(bpm_vector[is.na(bpm_vector)]) != 0){
+      return(NULL)
+   }
+   data.table(time = time_vector, bpm = bpm_vector)
 }
 
+# Load file in csv format created in Basis Peak watches. Verify loaded data and return data.table with columns 'time' and 'bpm'.
 load_basis_csv <- function(file, timeShift){
    columnsNames <- c("", "time", "", "", "bpm", "", "")
    
    data <- read.csv(file, col.names = columnsNames, header = TRUE)
-   
+   if(length(data$bpm[!is.numeric(data$bpm)]) != 0){
+      return(NULL)
+   }
    data.table(time = as.numeric(format(as.POSIXct(data$time), format = "%s")) + timeShift, bpm = data$bpm)
 }
 
+# Load file in csv format where columns are 'date', 'time' and 'bpm' divided by comma. Verify loaded data and return data.table
+# with columns 'time' and 'bpm'.
 load_fitbit_csv <- function(file, timeShift){
    columnsNames <- c("date", "time", "bpm")
    
    data <- read.csv(file, col.names = columnsNames, header = FALSE)
+   if(length(data$bpm[!is.numeric(data$bpm)]) != 0){
+      return(NULL)
+   }
    
    data.table(time = as.numeric(format(as.POSIXct(paste(data$date, data$time, sep = " ")), format = "%s")) + timeShift, bpm = data$bpm)
 }
 
+# Load file in csv format where are nine columns divided by comma. First column is 'time' and third column is 'bpm'. Verify loaded
+# data and return data.table with two columns 'time' and 'bpm'.
 load_chest_strap_csv <- function(file, timeShift) {
    columnsNames <- c("time", "", "bpm", "", "", "", "", "", "")
    
    data <- read.csv(file, col.names = columnsNames, header = FALSE)
+   
+   if(length(data$bpm[!is.numeric(data$bpm)]) + length(data$time[!is.numeric(data$time)]) != 0){
+      return(NULL)
+   }
    
    data_by_sec <- data.table(time = floor(data$time/1000) + timeShift, bpm = data$bpm)[, mean(bpm), by=time]
    setnames(data_by_sec, c("time", "V1"), c("time", "bpm"))
    data_by_sec
 }
 
+# Samples input data. Return data.table with time from startTime to endTime with spacing timeInterval. Sampling is create by averaging.
 data_sampling <- function(data, startTime, endTime, timeInterval){
    if(is.null(data) || nrow(data) == 0) return(NULL)
    
-   data <- data[time >= startTime]
-   if(nrow(data) == 0) return(NULL)
-   
-   sum <- 0
-   counter <- 0
-   sumStartTime <- startTime
-   i <- 1L
    sequence <- seq(startTime, endTime, timeInterval)
    size <- length(sequence)
    DT <- data.table(time = sequence, bpm = numeric(size))
    
-   print(nrow(data))
-   for (n in 1:nrow(data)){
-      curTime <- data[n]$time
-      if(curTime < startTime) next
-      if(curTime > endTime || i > size) break
-      if(curTime == startTime){
-         set(DT, i, "bpm", data[n]$bpm)
-         i <- i + 1L
-         next
+   for (n in 1:nrow(DT)){
+      frame <- data[time <= startTime]
+      frame <- frame[time > startTime - timeInterval]
+      data_mean <- mean(frame$bpm)
+      if(!is.na(data_mean)){
+         set(DT, n, "bpm", data_mean)
       }
-      
-      if(sumStartTime + timeInterval < curTime){
-         sumStartTime <- sumStartTime + timeInterval
-         if (counter != 0){
-            set(DT, i, "bpm", sum/counter)
-         }
-         
-         counter <- 0
-         sum <- 0
-         i <- i + 1L
-      }
-      while (sumStartTime + timeInterval < curTime){
-         sumStartTime <- sumStartTime + timeInterval
-         i <- i + 1L
-      }
-      
-      sum <- sum + data[n]$bpm
-      counter <- counter + 1
-   }
-   if (size > i){
-      if(counter != 0){
-         value <- sum/counter
-      }else{
-         value <- data[n]$bpm
-      }
-      set(DT, i, "bpm", value)
+      startTime <- startTime + timeInterval
    }
    DT
 }
 
+# Filter data based on options value.
+# If option contains izv, delete all values where is zero. 
+# If option contains io, delete all value which are outliers.
 filter_data <- function(data, options, outliers = TRUE){
    if(is.null(data)) return(NULL)
    if(is.null(options)) return(data)
@@ -143,14 +135,14 @@ calculate_calculation <- function(time_lines){
    )
 }
 
-calculate_quantile_mean <- function(time_line){
-   quantile <- quantile(time_line)
-   mean <- mean(time_line)
+calculate_dispersion <- function(residues){
+   if(is.null(residues)) return(NULL)
    
-   c(quantile[1:2], mean, quantile[3:5])
+   sum(residues ^ 2)/length(residues)
 }
 
 calculate_quantile <- function(time_lines, name1, name2){
+   if(is.null(time_lines)) return(NULL)
    
    tm1 <- time_lines$bpm.x
    tm2 <- time_lines$bpm.y
@@ -158,6 +150,9 @@ calculate_quantile <- function(time_lines, name1, name2){
    tm4 <- abs(time_lines$residues)
    tm5 <- (time_lines$residues / time_lines$bpm.x) * 100
    tm6 <- abs(time_lines$residues / time_lines$bpm.x) * 100
+   
+   tm5[is.nan(tm5)] <- 0
+   tm6[is.nan(tm6)] <- 0
    
    table <- data.table(
       c("Min", "1st Qu.", "Mean", "Median", "3rd Qu.", "Max"),
@@ -183,28 +178,22 @@ calculate_quantile <- function(time_lines, name1, name2){
    table
 }
 
-calculate_dispersion <- function(residues){
-   if(is.null(residues)) return(NULL)
+calculate_quantile_mean <- function(time_line){
+   quantile <- quantile(time_line)
+   mean <- mean(time_line)
    
-   sum(residues ^ 2)/length(residues)
+   c(quantile[1:2], mean, quantile[3:5])
 }
 
 get_time <- function(strTime) {
    as.numeric(format(strptime(x = strTime, format = "%d.%m.%Y %H:%M:%S"), format = "%s"))
 }
 
-create_table <- function(data, device1, device2){
-   if(is.null(data)) return(NULL)
-   
-   table <- data.table(format(anytime(data$time), format = "%d.%m.%Y %H:%M:%S"), data$bpm.x, data$bpm.y, data$residues)
-   setnames(table, c("V1", "V2", "V3", "V4"), c("Time", paste0(device1, " [BPM]"), paste0(device2, " [BPM]"), "Residuas [BPM]"))
-   table
-}
-
 # =================================================================================================================================
 # =========================================================== VALIDATION ==========================================================
 # =================================================================================================================================
 
+# If inputElement is null, then element with inputId is assigned to color_red class and TRUE is returned. Otherwise fail is returned.
 checkInput <- function(inputElement, inputId, fail){
    if(is.null(inputElement)){
       shinyjs::addClass(id = inputId, class = "color_red")
@@ -213,6 +202,8 @@ checkInput <- function(inputElement, inputId, fail){
    return(fail)
 }
 
+# If inputElement is non numeric or out of range(minValue, maxValue), element with inputId is assigned to color_red class and
+# error message is returned. Otherwise empty string is returned. 
 checkNumericInput <- function(inputElement, inputId, inputName, minValue, maxValue){
    message <- ""
    if(!is.numeric(inputElement)) {
@@ -226,6 +217,10 @@ checkNumericInput <- function(inputElement, inputId, inputName, minValue, maxVal
    return(message)
 }
 
+# If inputStartElement is NULL or value can not be parse, element with inputStartId is assigned to color_red class and error 
+# message is returned. Same behavior is on inputEndElement and inputEndId. If inputStartElement have bigger value than 
+# inputEnd element, elements with inputStartId and inputEndId are assigned to color_red class and error message is returned.
+# Otherwise return empty string.
 checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inputEndId, inputsName){
    fail <- FALSE
    fail <- checkInput(inputStartElement, inputStartId, fail)
@@ -257,6 +252,7 @@ checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inp
    return("")
 }
 
+# If input parametr is TRUE or missing, all tabs in navbar are shown. Othrewise hide tabs: LOW, MEDIUM, HIGH, SUMMARY and TABLES.
 toggleTabs <- function(show = TRUE){
    if(show){
       shinyjs::show(selector = "#navbar *", anim = TRUE)
@@ -269,6 +265,8 @@ toggleTabs <- function(show = TRUE){
    }
 }
 
+# Concate input messages with new line as separator. If one of messages is empty, return only second message. If both messages
+# are empty, return empty message.
 paste1 <- function(message1, message2){
    if (message1 != "" && message2 != ""){
       return(paste(message1, message2, sep = "\n"))
@@ -282,26 +280,38 @@ paste1 <- function(message1, message2){
 }
 
 # =================================================================================================================================
-# ============================================================ GRAPHS =============================================================
+# ======================================================= GRAPHS AND TABLES =======================================================
 # =================================================================================================================================
 
+# Create plot with two lines.
 create_plot <- function(time_lines, name1, name2){
-   validate(need(!is.null(time_lines),'Can not create a plot. No input data.'))
+   validate(
+      need(!is.null(time_lines),'Can not create a plot. No input data.'),
+      need(nrow(time_lines) != 0,'Can not create a plot. No input data.')
+   )
    
    plot_ly(y = time_lines$bpm.x, x = anytime(time_lines$time), name = name1, type = 'scatter', mode = 'lines')%>%
       add_trace(y = time_lines$bpm.y, name = name2, mode = 'lines')%>%
       layout(xaxis = list(title = "Time"), yaxis = list(title = "BPM"))
 }
 
+# Create plot of residuas.
 create_resi_plot <- function(time_lines){
-   validate(need(!is.null(time_lines),'Can not create a plot. No input data.'))
+   validate(
+      need(!is.null(time_lines),'Can not create a plot. No input data.'),
+      need(nrow(time_lines) != 0,'Can not create a plot. No input data.')
+   )
    
    plot_ly(time_lines, y = ~residues, x = anytime(time_lines$time), type = 'scatter', mode = 'lines')%>%
       layout(xaxis = list(title = "Time"), yaxis = list(title = "A - B [BPM]"))
 }
 
+# Create Bland&Altman plot from input data.
 create_bland_altman_plot <- function(time_lines){
-   validate(need(!is.null(time_lines),'Can not create a Bland-Altman plot. No input data.'))
+   validate(
+      need(!is.null(time_lines),'Can not create Bland-Altman plot. No input data.'),
+      need(nrow(time_lines) != 0,'Can not create Bland-Altman plot. No input data.')
+   )
    
    data.sd <- 1.96 * sd(time_lines$residues)
    data.mean <- mean(time_lines$residues)
@@ -315,20 +325,32 @@ create_bland_altman_plot <- function(time_lines){
       layout(xaxis = list(zeroline = FALSE, title = '(A + B)/2'), yaxis = list(zeroline = FALSE, title = 'A - B'))
 }
 
+# Create box plot showing outliers.
 create_box_plot <- function(time_lines){
    plot_ly(y = ~time_lines$residues, type = "box", name = '') %>%
       layout(xaxis = list(title = "", showticklabels = FALSE, zeroline = FALSE), yaxis = list(title = "A - B [BPM]", zeroline = FALSE))
+}
+
+# Create table with time, bpm value form first device, bpm value from second device and bpm resiues.
+create_table <- function(data, device1, device2){
+   if(is.null(data) || nrow(data)) return(NULL)
+   
+   table <- data.table(format(anytime(data$time), format = "%d.%m.%Y %H:%M:%S"), data$bpm.x, data$bpm.y, data$residues)
+   setnames(table, c("V1", "V2", "V3", "V4"), c("Time", paste0(device1, " [BPM]"), paste0(device2, " [BPM]"), "Residuas [BPM]"))
+   table
 }
 
 # =================================================================================================================================
 # ============================================================ SERVER =============================================================
 # =================================================================================================================================
 function(input, output, session) {
-   
-   toggleTabs(FALSE)
    print("--------------------------------------------- start --------------------------------------------------------")
    
-   # observe submit button to switch on next panel in navbar
+   toggleTabs(FALSE) # hide tabs
+   
+   # ======================================================== OBSERVATION =========================================================
+   
+   # On click on submitBtn input data are validated. On success summary tab is displayed. Otherwise alert is shown.
    observeEvent(input$submitBtn, {
       shinyjs::removeClass(selector = ".divs", class = "color_red")
       
@@ -376,6 +398,7 @@ function(input, output, session) {
       }
    })
    
+   # When value is changed of some element in list below, tabs with results are hiden.
    observeEvent({
       input$inFileLow1
       input$inFileLow2
@@ -401,42 +424,42 @@ function(input, output, session) {
       toggleTabs(FALSE)
    })
    
+   # ===================================================== DATA MANIPULATION ======================================================
    
-   # load files when change associated fileInput
+   # load files on inputs change
    inputLow1 <- reactive({
-      load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$startMeasLow, input$endMeasLow, input$timeIntervalInput,  input$timeZone1*3600)
+      data <- load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$startMeasLow, input$endMeasLow, input$timeIntervalInput,  input$timeZone1*3600)
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputMed1 <- reactive({
-      load_data(file = input$inFileMed1$datapath, deviceSelect = input$deviceSelect1, input$startMeasMed, input$endMeasMed, input$timeIntervalInput,  input$timeZone1*3600)
+      data <- load_data(file = input$inFileMed1$datapath, deviceSelect = input$deviceSelect1, input$startMeasMed, input$endMeasMed, input$timeIntervalInput,  input$timeZone1*3600)
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputHig1 <- reactive({
-      load_data(file = input$inFileHig1$datapath, deviceSelect = input$deviceSelect1, input$startMeasHig, input$endMeasHig, input$timeIntervalInput,  input$timeZone1*3600)
+      data <- load_data(file = input$inFileHig1$datapath, deviceSelect = input$deviceSelect1, input$startMeasHig, input$endMeasHig, input$timeIntervalInput,  input$timeZone1*3600)
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputLow2 <- reactive({
-      load_data(file = input$inFileLow2$datapath, deviceSelect = input$deviceSelect2, input$startMeasLow, input$endMeasLow, input$timeIntervalInput, input$timeShiftLow + (input$timeZone2*3600))
+      data <- load_data(file = input$inFileLow2$datapath, deviceSelect = input$deviceSelect2, input$startMeasLow, input$endMeasLow, input$timeIntervalInput, input$timeShiftLow + (input$timeZone2*3600))
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputMed2 <- reactive({
-      load_data(file = input$inFileMed2$datapath, deviceSelect = input$deviceSelect2, input$startMeasMed, input$endMeasMed, input$timeIntervalInput, input$timeShiftMed + (input$timeZone2*3600))
+      data <- load_data(file = input$inFileMed2$datapath, deviceSelect = input$deviceSelect2, input$startMeasMed, input$endMeasMed, input$timeIntervalInput, input$timeShiftMed + (input$timeZone2*3600))
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputHig2 <- reactive({
-      load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$startMeasHig, input$endMeasHig, input$timeIntervalInput, input$timeShiftHig + (input$timeZone2*3600))
+      data <- load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$startMeasHig, input$endMeasHig, input$timeIntervalInput, input$timeShiftHig + (input$timeZone2*3600))
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    
-   filteredInputLow <- reactive({
-      filter_data(inputLowOutliers(), input$otherOptions)
-   })
-   filteredInputMed <- reactive({
-      filter_data(inputMedOutliers(), input$otherOptions)
-   })
-   filteredInputHig <- reactive({
-      filter_data(inputHigOutliers(), input$otherOptions)
-   })
-   filteredInputSummary <- reactive({
-      filter_data(inputSummaryOutliers(), input$otherOptions) 
-   })
-   
+   # merge data of same measurement from two devices and filter with outliers disabled
    inputLowOutliers <- reactive({
-      
       tryResult <- try({
          time_line1 <- inputLow1()
          time_line2 <- inputLow2()
@@ -446,7 +469,9 @@ function(input, output, session) {
       
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
-      filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      data <- filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputMedOutliers <- reactive({
       tryResult <- try({
@@ -457,7 +482,9 @@ function(input, output, session) {
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
-      filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      data <- filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputHigOutliers <- reactive({
       tryResult <- try({
@@ -468,40 +495,80 @@ function(input, output, session) {
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
-      filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      data <- filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    inputSummaryOutliers <- reactive({
       rbind(inputLowOutliers(), inputMedOutliers(), inputHigOutliers())
    })
    
-   otherOptions <- reactive({
-      input$otherOptions
+   # filter data from input*Outliers based on input$otherOptions
+   filteredInputLow <- reactive({
+      data <- filter_data(inputLowOutliers(), input$otherOptions)
+      if(nrow(data) == 0) return(NULL)
+      data
+   })
+   filteredInputMed <- reactive({
+      data <- filter_data(inputMedOutliers(), input$otherOptions)
+      if(nrow(data) == 0) return(NULL)
+      data
+   })
+   filteredInputHig <- reactive({
+      data <- filter_data(inputHigOutliers(), input$otherOptions)
+      if(nrow(data) == 0) return(NULL)
+      data
+   })
+   filteredInputSummary <- reactive({
+      data <- filter_data(inputSummaryOutliers(), input$otherOptions) 
+      if(nrow(data) == 0) return(NULL)
+      data
    })
    
+   # ======================================================= DATA RENDERING =======================================================
+   
+   # render table of basic calculatinos(corelation, standard deviation,...)
    output$calculationLow <-renderTable(colnames = FALSE,{
-      calculate_calculation(filteredInputLow())
+      data <- calculate_calculation(filteredInputLow())
+      req(data)
+      data
    })
    output$calculationMed <-renderTable(colnames = FALSE,{
-      calculate_calculation(filteredInputMed())
+      data <- calculate_calculation(filteredInputMed())
+      req(data)
+      data
    })
    output$calculationHig <-renderTable(colnames = FALSE,{
-      calculate_calculation(filteredInputHig())
+      data <- calculate_calculation(filteredInputHig())
+      req(data)
+      data
    })
    output$calculationSum <-renderTable(colnames = FALSE,{
-      calculate_calculation(filteredInputSummary())
+      data <- calculate_calculation(filteredInputSummary())
+      req(data)
+      data
    })
    
+   # render table of quartiles and mean from bpms, residues, errors.
    output$quantileLow <- renderTable(align = "lcccccc", width = "100%", {
-      calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
+      data <- calculate_quantile(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
+      req(data)
+      data
    })
    output$quantileMed <- renderTable(align = "lcccccc", width = "100%", {
-      calculate_quantile(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
+      data <- calculate_quantile(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
+      req(data)
+      data
    })
    output$quantileHig <- renderTable(align = "lcccccc", width = "100%", {
-      calculate_quantile(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
+      data <- calculate_quantile(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
+      req(data)
+      data
    })
    output$quantileSum <- renderTable(align = "lcccccc", width = "100%", {
-      calculate_quantile(filteredInputSummary(), input$deviceSelect1, input$deviceSelect2)
+      data <- calculate_quantile(filteredInputSummary(), input$deviceSelect1, input$deviceSelect2)
+      req(data)
+      data
    })
    
    # render plots with two lines
@@ -526,6 +593,7 @@ function(input, output, session) {
       create_resi_plot(filteredInputHig())
    })
    
+   # render Bland&Altman plot
    output$BAPlotLow <- renderPlotly({
       create_bland_altman_plot(filteredInputLow())
    })
@@ -536,6 +604,7 @@ function(input, output, session) {
       create_bland_altman_plot(filteredInputHig())
    })
    
+   # render box plot showing outliers
    output$boxPlotLow <- renderPlotly({
       create_box_plot(inputLowOutliers())
    })
@@ -553,13 +622,20 @@ function(input, output, session) {
       }
    })
    
+   # render tables of input data
    output$tableLow <- renderTable(align = "cccc", width = "100%", {
-      create_table(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
+      data <- create_table(filteredInputLow(), input$deviceSelect1, input$deviceSelect2)
+      req(data)
+      data
    })
    output$tableMed <- renderTable(align = "cccc", width = "100%", {
-      create_table(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
+      data <- create_table(filteredInputMed(), input$deviceSelect1, input$deviceSelect2)
+      req(data)
+      data
    })
    output$tableHig <- renderTable(align = "cccc", width = "100%", {
-      create_table(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
+      data <- create_table(filteredInputHig(), input$deviceSelect1, input$deviceSelect2)
+      req(data)
+      data
    })
 }
