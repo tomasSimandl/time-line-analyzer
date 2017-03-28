@@ -4,18 +4,11 @@ library(plotly)
 library(shinyTime)
 library(shinyjs)
 
-
 shinyUI(list(
    tags$head(
       useShinyjs(),
-      tags$script(
-         "Shiny.addCustomMessageHandler(\"allertMessage\",
-            function(message) {
-               alert(message);
-            }
-         );"
-      ),
-      tags$style(".color_red{ color: red }")
+      tags$script(src ="scripts.js"),
+      tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
    ),
    navbarPage("Data Analyzer", id = "navbar", theme = shinytheme("united"),
               # Panel for file input
@@ -204,6 +197,11 @@ shinyUI(list(
                           tabPanel("Medium", tableOutput('tableMed')), 
                           tabPanel("High", tableOutput('tableHig'))
                        )
+              ),
+              
+              # panel about
+              tabPanel("About", value = "tabAbout",
+                  "This work is part of bachelor thesis..."
               )
    )
    )

@@ -12,13 +12,12 @@ library(XML)
 load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, timeShift){
    if(is.null(file) || is.null(startTime) || is.null(endTime) || !is.numeric(timeInterval) || !is.numeric(timeShift)) return(NULL)
    
-   tryResult <- try(data <- switch(deviceSelect,
+   data <- switch(deviceSelect,
                   chest_strap = load_chest_strap_csv(file, timeShift),
                   garmin = load_garmin_tcx(file, timeShift),
                   basis = load_basis_csv(file, timeShift),
                   fitbit = load_fitbit_csv(file, timeShift),
-                  return(NULL)), silent = TRUE)
-   if(class(tryResult) == "try-error") return(NULL)
+                  return(NULL))
    
    data_sampling(data, get_time(startTime), get_time(endTime), timeInterval)
 }
@@ -74,7 +73,7 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
    for (n in 1:nrow(data)){
       curTime <- data[n]$time
       if(curTime < startTime) next
-      if(curTime > endTime) break
+      if(curTime > endTime || i > size) break
       if(curTime == startTime){
          set(DT, i, "bpm", data[n]$bpm)
          i <- i + 1L
@@ -99,7 +98,7 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
       sum <- sum + data[n]$bpm
       counter <- counter + 1
    }
-   if (size <= i){
+   if (size > i){
       if(counter != 0){
          value <- sum/counter
       }else{
@@ -437,8 +436,12 @@ function(input, output, session) {
    })
    
    inputLowOutliers <- reactive({
-      time_line1 <- inputLow1()
-      time_line2 <- inputLow2()
+      
+      tryResult <- try({
+         time_line1 <- inputLow1()
+         time_line2 <- inputLow2()
+      }, silent = TRUE)
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       
@@ -446,16 +449,22 @@ function(input, output, session) {
       filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
    inputMedOutliers <- reactive({
-      time_line1 <- inputMed1()
-      time_line2 <- inputMed2()
+      tryResult <- try({
+         time_line1 <- inputMed1()
+         time_line2 <- inputMed2()
+      }, silent = TRUE)
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
       filter_data(data[, residues := (data$bpm.x - data$bpm.y)], options = input$otherOptions, outliers = FALSE)
    })
    inputHigOutliers <- reactive({
-      time_line1 <- inputHig1()
-      time_line2 <- inputHig2()
+      tryResult <- try({
+         time_line1 <- inputHig1()
+         time_line2 <- inputHig2()
+      }, silent = FALSE)
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
       
       data <- merge(x = time_line1, y = time_line2, by = "time")
