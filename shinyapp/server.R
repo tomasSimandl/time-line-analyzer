@@ -398,7 +398,8 @@ function(input, output, session) {
    observeEvent(input$submitBtn, {
       shinyjs::removeClass(selector = ".divs", class = "color_red")
       
-      shinyjs::html(id = "submitBtn", html = "<img src=\"loading.svg\" style=\"width: 20px;\">")
+      shinyjs::disable(id = "timeButton")
+      shinyjs::disable(id = "submitBtn")
       
       message <- ""
       fail <- FALSE
@@ -436,7 +437,8 @@ function(input, output, session) {
          message <- paste(message, "- Input data are incorrect. Can not make the calculations for high load", sep = "\n")
       }
       
-      shinyjs::html(id = "submitBtn", html = "Submit")
+      shinyjs::enable(id = "timeButton")
+      shinyjs::enable(id = "submitBtn")
       if(message == ""){
          toggleTabs()
          updateNavbarPage(session, "navbar", selected = "tabSummary")
@@ -447,6 +449,9 @@ function(input, output, session) {
    })
    
    observeEvent(input$timeButton, {
+      shinyjs::disable(id = "timeButton")
+      shinyjs::disable(id = "submitBtn")
+      
       result <- set_time_Limits(inputLow1(), inputLow2(), session, "startMeasLow", "endMeasLow", input$deviceSelect1, input$deviceSelect2)
       output$lowTimeWarning <- renderText(result)
       
@@ -455,6 +460,9 @@ function(input, output, session) {
       
       result <- set_time_Limits(inputHig1(), inputHig2(), session, "startMeasHig", "endMeasHig", input$deviceSelect1, input$deviceSelect2)
       output$higTimeWarning <- renderText(result)
+      
+      shinyjs::enable(id = "timeButton")
+      shinyjs::enable(id = "submitBtn")
    })
    
    # When value is changed of some element in list below, tabs with results are hiden.
