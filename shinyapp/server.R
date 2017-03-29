@@ -226,7 +226,7 @@ checkNumericInput <- function(inputElement, inputId, inputName, minValue, maxVal
 # message is returned. Same behavior is on inputEndElement and inputEndId. If inputStartElement have bigger value than 
 # inputEnd element, elements with inputStartId and inputEndId are assigned to color_red class and error message is returned.
 # Otherwise return empty string.
-checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inputEndId, inputsName){
+checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inputEndId, inputsName, timeInterval){
    fail <- FALSE
    fail <- checkInput(inputStartElement, inputStartId, fail)
    fail <- checkInput(inputEndElement, inputEndId, fail)
@@ -253,6 +253,12 @@ checkTimeInput <- function(inputStartElement, inputEndElement, inputStartId, inp
       shinyjs::addClass(id = inputStartId, class = "color_red")
       shinyjs::addClass(id = inputEndId, class = "color_red")
       return(paste("-", inputsName, "is incorrect. First value is bigger then second."))
+   }
+   
+   if((endTime - startTime)/timeInterval < 10){
+      shinyjs::addClass(id = inputStartId, class = "color_red")
+      shinyjs::addClass(id = inputEndId, class = "color_red")
+      return(paste("- Measurement interval must contains  minimal 10 samples."))
    }
    return("")
 }
@@ -411,10 +417,14 @@ function(input, output, session) {
       message <- paste1(message, checkNumericInput(input$timeShiftLow, "divTimeShiftLow", "Time Shift Low", -3600, 3600))
       message <- paste1(message, checkNumericInput(input$timeShiftMed, "divTimeShiftMed", "Time Shift Medium", -3600, 3600))
       message <- paste1(message, checkNumericInput(input$timeShiftHig, "divTimeShiftHig", "Time Shift High", -3600, 3600))
-      message <- paste1(message, checkNumericInput(input$timeIntervalInput, "divTimeIntervalInput", "Time Sampling Interval", 1, 60))
-      message <- paste1(message, checkTimeInput(input$startMeasLow, input$endMeasLow, "divStartMeasLow", "divEndMeasLow", "Measurement interval for low load"))
-      message <- paste1(message, checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", "Measurement interval for medium load"))
-      message <- paste1(message, checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", "Measurement interval for high load"))
+      
+      timeIntervalInputMessage <- checkNumericInput(input$timeIntervalInput, "divTimeIntervalInput", "Time Sampling Interval", 1, 60) 
+      message <- paste1(message, timeIntervalInputMessage)
+      if(timeIntervalInputMessage == ""){
+         message <- paste1(message, checkTimeInput(input$startMeasLow, input$endMeasLow, "divStartMeasLow", "divEndMeasLow", "Measurement interval for low load", input$timeIntervalInput))
+         message <- paste1(message, checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", "Measurement interval for medium load", input$timeIntervalInput))
+         message <- paste1(message, checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", "Measurement interval for high load", input$timeIntervalInput))
+      }
       
       if(is.null(filteredInputLow()) || nrow(filteredInputLow()) == 0) {
          message <- paste(message, "- Input data are incorrect. Can not make the calculations for low load", sep = "\n")
