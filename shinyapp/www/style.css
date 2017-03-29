@@ -2,6 +2,10 @@
    color: red;
 }
 
+#timeButton {
+   margin-bottom: 20px;
+}
+
 #divAbout{
    width: 70%;
    margin: auto;

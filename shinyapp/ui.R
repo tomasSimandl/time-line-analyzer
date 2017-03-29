@@ -68,22 +68,30 @@ shinyUI(list(
                           fluidRow(
                              column(width = 2,
                                     div(id = "divStartMeasLow", class = "divs",
-                                        textInput(inputId = "startMeasLow", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                                        textInput(inputId = "startMeasLow", "From", value = "---"))),
                              column(width = 2,
                                     div(id = "divEndMeasLow", class = "divs",
-                                        textInput(inputId = "endMeasLow", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                                        textInput(inputId = "endMeasLow", "To", value = "---"))),
                              column(width = 2,
                                     div(id = "divStartMeasMed", class = "divs",
-                                        textInput(inputId = "startMeasMed", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                                        textInput(inputId = "startMeasMed", "From", value = "---"))),
                              column(width = 2,
                                     div(id = "divEndMeasMed", class = "divs",
-                                        textInput(inputId = "endMeasMed", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                                        textInput(inputId = "endMeasMed", "To", value = "---"))),
                              column(width = 2,
                                     div(id = "divStartMeasHig", class = "divs",
-                                        textInput(inputId = "startMeasHig", "From", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S")))),
+                                        textInput(inputId = "startMeasHig", "From", value = "---"))),
                              column(width = 2,
                                     div(id = "divEndMeasHig", class = "divs",
-                                        textInput(inputId = "endMeasHig", "To", value = format(Sys.time(), format = "%d.%m.%Y %H:%M:%S"))))
+                                        textInput(inputId = "endMeasHig", "To", value = "---")))
+                          ),
+                          fluidRow(
+                             column(width = 4, span(class = "color_red", textOutput("lowTimeWarning"))),
+                             column(width = 4, span(class = "color_red", textOutput("medTimeWarning"))),
+                             column(width = 4, span(class = "color_red", textOutput("higTimeWarning")))
+                          ),
+                          fluidRow(
+                             column(width = 12, actionButton(inputId = "timeButton", label = "Fill time automatically", width = "100%"))
                           ),
                           fluidRow(
                              column(width = 4,
@@ -129,7 +137,7 @@ shinyUI(list(
                           p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
                             outliers of residues, which means outliers of difference of two measurement from different inputs."),
                           plotlyOutput("boxPlotLow"),
-                          span(textOutput("boxPlotWarning1"), style="color:red")
+                          span(textOutput("boxPlotWarning1"), class = "color_red")
                        )
               ),
               
@@ -160,7 +168,7 @@ shinyUI(list(
                           p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
                             outliers of residues, which means outliers of difference of two measurement from different inputs."),
                           plotlyOutput("boxPlotMed"),
-                          span(textOutput("boxPlotWarning2"), style="color:red")
+                          span(textOutput("boxPlotWarning2"), class = "color_red")
                        )
               ),
               
@@ -191,7 +199,7 @@ shinyUI(list(
                           p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
                             outliers of residues, which means outliers of difference of two measurement from different inputs."),
                           plotlyOutput("boxPlotHig"),
-                          span(textOutput("boxPlotWarning3"), style="color:red")
+                          span(textOutput("boxPlotWarning3"), class = "color_red")
                        )
               ),
               

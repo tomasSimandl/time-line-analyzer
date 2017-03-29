@@ -11,8 +11,8 @@ library(XML)
 
 # Check input values and decide which function will be used for loading a file. After success file load call function for data
 # sampling.
-load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, timeShift){
-   if(is.null(file) || is.null(startTime) || is.null(endTime) || !is.numeric(timeInterval) || !is.numeric(timeShift)) return(NULL)
+load_data <- function(file, deviceSelect, timeShift){
+   if(is.null(file) || !is.numeric(timeShift)) return(NULL)
    
    data <- switch(deviceSelect,
                   chest_strap = load_chest_strap_csv(file, timeShift),
@@ -20,8 +20,6 @@ load_data <- function(file, deviceSelect, startTime, endTime, timeInterval, time
                   basis = load_basis_csv(file, timeShift),
                   fitbit = load_fitbit_csv(file, timeShift),
                   return(NULL))
-   
-   data_sampling(data, get_time(startTime), get_time(endTime), timeInterval)
 }
 
 # Load file in tcx format. Verify loaded data and return data.table with columns 'time' and 'bpm'.
@@ -80,7 +78,10 @@ load_chest_strap_csv <- function(file, timeShift) {
 
 # Samples input data. Return data.table with time from startTime to endTime with spacing timeInterval. Sampling is create by averaging.
 data_sampling <- function(data, startTime, endTime, timeInterval){
-   if(is.null(data) || nrow(data) == 0) return(NULL)
+   if(is.null(data) || nrow(data) == 0 || is.null(startTime) || is.null(endTime) || !is.numeric(timeInterval)) return(NULL)
+   
+   startTime <- get_time(startTime)
+   endTime <- get_time(endTime)
    
    sequence <- seq(startTime, endTime, timeInterval)
    size <- length(sequence)
@@ -189,6 +190,10 @@ get_time <- function(strTime) {
    as.numeric(format(strptime(x = strTime, format = "%d.%m.%Y %H:%M:%S"), format = "%s"))
 }
 
+get_formated_time <- function(longTime){
+   format(anytime(longTime), format = "%d.%m.%Y %H:%M:%S")
+}
+
 # =================================================================================================================================
 # =========================================================== VALIDATION ==========================================================
 # =================================================================================================================================
@@ -279,6 +284,39 @@ paste1 <- function(message1, message2){
    }
 }
 
+set_time_Limits <- function(file1, file2, session, startTextInput, endTextInput, device1, device2){
+   updateTextInput(session, startTextInput, value = "---")
+   updateTextInput(session, endTextInput, value = "---")
+   
+   if(is.null(file1) || is.null(file2)) return("")
+   
+   start <- max(file1$time[1L], file2$time[1L])
+   end <- min(tail(file1$time, n = 1) , tail(file2$time, n = 1))
+   
+   if(start >= end){
+      return(paste0(get_formated_time(file1$time[1L]),
+             " - ",
+             get_formated_time(tail(file1$time, n = 1)),
+             " - ",
+             device1,
+             "\n",
+             get_formated_time(file2$time[1L]),
+             " - ",
+             get_formated_time(tail(file2$time, n = 1)),
+             " - ",
+             device2))
+   }
+   
+   strTimeStart <- get_formated_time(start)
+   strTimeEnd <- get_formated_time(end)
+   
+   if(is.na(strTimeStart) || is.na(strTimeEnd)) return("Ivalid time format")
+   
+   updateTextInput(session, startTextInput, value = strTimeStart)
+   updateTextInput(session, endTextInput, value = strTimeEnd)
+   return("")
+}
+
 # =================================================================================================================================
 # ======================================================= GRAPHS AND TABLES =======================================================
 # =================================================================================================================================
@@ -333,7 +371,7 @@ create_box_plot <- function(time_lines){
 
 # Create table with time, bpm value form first device, bpm value from second device and bpm resiues.
 create_table <- function(data, device1, device2){
-   if(is.null(data) || nrow(data)) return(NULL)
+   if(is.null(data) || nrow(data) == 0) return(NULL)
    
    table <- data.table(format(anytime(data$time), format = "%d.%m.%Y %H:%M:%S"), data$bpm.x, data$bpm.y, data$residues)
    setnames(table, c("V1", "V2", "V3", "V4"), c("Time", paste0(device1, " [BPM]"), paste0(device2, " [BPM]"), "Residuas [BPM]"))
@@ -398,6 +436,17 @@ function(input, output, session) {
       }
    })
    
+   observeEvent(input$timeButton, {
+      result <- set_time_Limits(inputLow1(), inputLow2(), session, "startMeasLow", "endMeasLow", input$deviceSelect1, input$deviceSelect2)
+      output$lowTimeWarning <- renderText(result)
+      
+      result <- set_time_Limits(inputMed1(), inputMed2(), session, "startMeasMed", "endMeasMed", input$deviceSelect1, input$deviceSelect2)
+      output$medTimeWarning <- renderText(result)
+      
+      result <- set_time_Limits(inputHig1(), inputHig2(), session, "startMeasHig", "endMeasHig", input$deviceSelect1, input$deviceSelect2)
+      output$higTimeWarning <- renderText(result)
+   })
+   
    # When value is changed of some element in list below, tabs with results are hiden.
    observeEvent({
       input$inFileLow1
@@ -428,32 +477,64 @@ function(input, output, session) {
    
    # load files on inputs change
    inputLow1 <- reactive({
-      data <- load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$startMeasLow, input$endMeasLow, input$timeIntervalInput,  input$timeZone1*3600)
+      data <- load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$timeZone1*3600)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputMed1 <- reactive({
-      data <- load_data(file = input$inFileMed1$datapath, deviceSelect = input$deviceSelect1, input$startMeasMed, input$endMeasMed, input$timeIntervalInput,  input$timeZone1*3600)
+      data <- load_data(file = input$inFileMed1$datapath, deviceSelect = input$deviceSelect1,  input$timeZone1*3600)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputHig1 <- reactive({
-      data <- load_data(file = input$inFileHig1$datapath, deviceSelect = input$deviceSelect1, input$startMeasHig, input$endMeasHig, input$timeIntervalInput,  input$timeZone1*3600)
+      data <- load_data(file = input$inFileHig1$datapath, deviceSelect = input$deviceSelect1,  input$timeZone1*3600)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputLow2 <- reactive({
-      data <- load_data(file = input$inFileLow2$datapath, deviceSelect = input$deviceSelect2, input$startMeasLow, input$endMeasLow, input$timeIntervalInput, input$timeShiftLow + (input$timeZone2*3600))
+      data <- load_data(file = input$inFileLow2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftLow + (input$timeZone2*3600))
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputMed2 <- reactive({
-      data <- load_data(file = input$inFileMed2$datapath, deviceSelect = input$deviceSelect2, input$startMeasMed, input$endMeasMed, input$timeIntervalInput, input$timeShiftMed + (input$timeZone2*3600))
+      data <- load_data(file = input$inFileMed2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftMed + (input$timeZone2*3600))
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputHig2 <- reactive({
-      data <- load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$startMeasHig, input$endMeasHig, input$timeIntervalInput, input$timeShiftHig + (input$timeZone2*3600))
+      data <- load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftHig + (input$timeZone2*3600))
+      if(is.null(data) || nrow(data) == 0) return(NULL)
+      data
+   })
+   
+   # sample loaded files
+   sampledLow1 <- reactive({
+      data <- data_sampling(inputLow1(), input$startMeasLow, input$endMeasLow, input$timeIntervalInput)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
+      data
+   })
+   sampledMed1 <- reactive({
+      data <- data_sampling(inputMed1(), input$startMeasMed, input$endMeasMed, input$timeIntervalInput)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
+      data
+   })
+   sampledHig1 <- reactive({
+      data <- data_sampling(inputHig1(), input$startMeasHig, input$endMeasHig, input$timeIntervalInput)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
+      data
+   })
+   sampledLow2 <- reactive({
+      data <- data_sampling(inputLow2(), input$startMeasLow, input$endMeasLow, input$timeIntervalInput)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
+      data
+   })
+   sampledMed2 <- reactive({
+      data <- data_sampling(inputMed2(), input$startMeasMed, input$endMeasMed, input$timeIntervalInput)
+      if(is.null(data) || nrow(data) == 0) return(NULL)
+      data
+   })
+   sampledHig2 <- reactive({
+      data <- data_sampling(inputHig2(), input$startMeasHig, input$endMeasHig, input$timeIntervalInput)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
@@ -461,8 +542,8 @@ function(input, output, session) {
    # merge data of same measurement from two devices and filter with outliers disabled
    inputLowOutliers <- reactive({
       tryResult <- try({
-         time_line1 <- inputLow1()
-         time_line2 <- inputLow2()
+         time_line1 <- sampledLow1()
+         time_line2 <- sampledLow2()
       }, silent = TRUE)
       if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
@@ -475,8 +556,8 @@ function(input, output, session) {
    })
    inputMedOutliers <- reactive({
       tryResult <- try({
-         time_line1 <- inputMed1()
-         time_line2 <- inputMed2()
+         time_line1 <- sampledMed1()
+         time_line2 <- sampledMed2()
       }, silent = TRUE)
       if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
@@ -488,8 +569,8 @@ function(input, output, session) {
    })
    inputHigOutliers <- reactive({
       tryResult <- try({
-         time_line1 <- inputHig1()
-         time_line2 <- inputHig2()
+         time_line1 <- sampledHig1()
+         time_line2 <- sampledHig2()
       }, silent = FALSE)
       if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(time_line1) || is.null(time_line2)) return(NULL)
