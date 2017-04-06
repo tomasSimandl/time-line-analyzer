@@ -494,32 +494,56 @@ function(input, output, session) {
    
    # load files on inputs change
    inputLow1 <- reactive({
-      data <- load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$timeZone1*3600)
+      tryResult <- try({
+         data <- load_data(file = input$inFileLow1$datapath, deviceSelect = input$deviceSelect1, input$timeZone1*3600)
+      }, silent = TRUE)
+      
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputMed1 <- reactive({
-      data <- load_data(file = input$inFileMed1$datapath, deviceSelect = input$deviceSelect1,  input$timeZone1*3600)
+      tryResult <- try({
+         data <- load_data(file = input$inFileMed1$datapath, deviceSelect = input$deviceSelect1,  input$timeZone1*3600)
+      }, silent = TRUE)
+      
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputHig1 <- reactive({
-      data <- load_data(file = input$inFileHig1$datapath, deviceSelect = input$deviceSelect1,  input$timeZone1*3600)
+      tryResult <- try({
+         data <- load_data(file = input$inFileHig1$datapath, deviceSelect = input$deviceSelect1,  input$timeZone1*3600)
+      }, silent = TRUE)
+      
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputLow2 <- reactive({
-      data <- load_data(file = input$inFileLow2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftLow + (input$timeZone2*3600))
+      tryResult <- try({
+         data <- load_data(file = input$inFileLow2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftLow + (input$timeZone2*3600))
+      }, silent = TRUE)
+      
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputMed2 <- reactive({
-      data <- load_data(file = input$inFileMed2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftMed + (input$timeZone2*3600))
+      tryResult <- try({
+         data <- load_data(file = input$inFileMed2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftMed + (input$timeZone2*3600))
+      }, silent = TRUE)
+      
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
    inputHig2 <- reactive({
-      data <- load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftHig + (input$timeZone2*3600))
+      tryResult <- try({
+         data <- load_data(file = input$inFileHig2$datapath, deviceSelect = input$deviceSelect2, input$timeShiftHig + (input$timeZone2*3600))
+      }, silent = TRUE)
+      
+      if("try-error" %in% class(tryResult)) return(NULL)
       if(is.null(data) || nrow(data) == 0) return(NULL)
       data
    })
