@@ -122,17 +122,19 @@ filter_data <- function(data, options, outliers = TRUE){
 # ========================================================== CALCULATION ==========================================================
 # =================================================================================================================================
 
-calculate_calculation <- function(time_lines){
+calculate_calculation <- function(time_lines, isCorelation = TRUE){
    if(is.null(time_lines)) return(NULL)
    
    dispersion <- calculate_dispersion(time_lines$residues)
    std_dev <- sqrt(dispersion)
-   corelation <- cor(x = time_lines$bpm.x, y = time_lines$bpm.y, method = c("pearson"))
    
-   data.table(
-      c("Dispersion", "Standard deviation", "Corelation", "Error SD"),
-      c(dispersion, std_dev, corelation, sd(time_lines$residues))
-   )
+   if (isCorelation){
+      corelation <- cor(x = time_lines$bpm.x, y = time_lines$bpm.y, method = c("pearson"))
+      result <- data.table(c("Dispersion", "Standard deviation", "Corelation", "Error SD"),c(dispersion, std_dev, corelation, sd(time_lines$residues)))
+   } else {
+      result <- data.table(c("Dispersion", "Standard deviation", "Error SD"),c(dispersion, std_dev, sd(time_lines$residues)))
+   }
+   result
 }
 
 calculate_dispersion <- function(residues){
@@ -650,7 +652,7 @@ function(input, output, session) {
       data
    })
    output$calculationSum <-renderTable(colnames = FALSE,{
-      data <- calculate_calculation(filteredInputSummary())
+      data <- calculate_calculation(filteredInputSummary(), isCorelation = FALSE)
       req(data)
       data
    })
