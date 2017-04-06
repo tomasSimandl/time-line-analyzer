@@ -29,10 +29,8 @@ load_garmin_tcx <- function(file, timeShift){
    time_vector <- as.numeric(format(strptime(x = data$Time, format = "%Y-%m-%dT%H:%M:%S"), format = "%s"))  + timeShift
    bpm_vector <- as.numeric(as.character(data$HeartRateBpm))
    
-   if(length(time_vector[is.na(time_vector)]) + length(bpm_vector[is.na(bpm_vector)]) != 0){
-      return(NULL)
-   }
-   data.table(time = time_vector, bpm = bpm_vector)
+   rData <- data.table(time = time_vector, bpm = bpm_vector)
+   rData[apply(rData[,.(time, bpm)], 1, function(row) all(!is.na(row))),]
 }
 
 # Load file in csv format created in Basis Peak watches. Verify loaded data and return data.table with columns 'time' and 'bpm'.
