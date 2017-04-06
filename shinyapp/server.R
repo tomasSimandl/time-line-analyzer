@@ -190,7 +190,7 @@ get_time <- function(strTime) {
 }
 
 get_formated_time <- function(longTime){
-   format(strptime(longTime, format = '%S'), format = "%d.%m.%Y %H:%M:%S")
+   format(strptime(longTime, format = '%s'), format = "%d.%m.%Y %H:%M:%S")
 }
 
 # =================================================================================================================================
@@ -333,7 +333,7 @@ create_plot <- function(time_lines, name1, name2){
       need(nrow(time_lines) != 0,'Can not create a plot. No input data.')
    )
    
-   plot_ly(y = time_lines$bpm.x, x = strptime(time_lines$time, format = "%S"), name = name1, type = 'scatter', mode = 'lines')%>%
+   plot_ly(y = time_lines$bpm.x, x = strptime(time_lines$time, format = "%s"), name = name1, type = 'scatter', mode = 'lines')%>%
       add_trace(y = time_lines$bpm.y, name = name2, mode = 'lines')%>%
       layout(xaxis = list(title = "Time"), yaxis = list(title = "BPM"))
 }
@@ -345,7 +345,7 @@ create_resi_plot <- function(time_lines){
       need(nrow(time_lines) != 0,'Can not create a plot. No input data.')
    )
    
-   plot_ly(time_lines, y = ~residues, x = strptime(time_lines$time, format = "%S"), type = 'scatter', mode = 'lines')%>%
+   plot_ly(time_lines, y = ~residues, x = strptime(time_lines$time, format = "%s"), type = 'scatter', mode = 'lines')%>%
       layout(xaxis = list(title = "Time"), yaxis = list(title = "A - B [BPM]"))
 }
 
@@ -378,7 +378,7 @@ create_box_plot <- function(time_lines){
 create_table <- function(data, device1, device2){
    if(is.null(data) || nrow(data) == 0) return(NULL)
    
-   table <- data.table(format(strptime(data$time, format = "%S"), format = "%d.%m.%Y %H:%M:%S"), data$bpm.x, data$bpm.y, data$residues)
+   table <- data.table(format(strptime(data$time, format = "%s"), format = "%d.%m.%Y %H:%M:%S"), data$bpm.x, data$bpm.y, data$residues)
    setnames(table, c("V1", "V2", "V3", "V4"), c("Time", paste0(device1, " [BPM]"), paste0(device2, " [BPM]"), "Residuas [BPM]"))
    table
 }
