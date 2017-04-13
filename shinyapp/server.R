@@ -19,6 +19,8 @@ load_data <- function(file, deviceSelect, timeShift){
                   basis = load_basis_csv(file, timeShift),
                   fitbit = load_fitbit_csv(file, timeShift),
                   return(NULL))
+   
+   data[apply(data[,.(time, bpm)], 1, function(row) all(!is.na(row))),]
 }
 
 # Load file in tcx format. Verify loaded data and return data.table with columns 'time' and 'bpm'.
@@ -29,8 +31,7 @@ load_garmin_tcx <- function(file, timeShift){
    time_vector <- as.numeric(format(strptime(x = data$Time, format = "%Y-%m-%dT%H:%M:%S"), format = "%s"))  + timeShift
    bpm_vector <- as.numeric(as.character(data$HeartRateBpm))
    
-   rData <- data.table(time = time_vector, bpm = bpm_vector)
-   rData[apply(rData[,.(time, bpm)], 1, function(row) all(!is.na(row))),]
+   data.table(time = time_vector, bpm = bpm_vector)
 }
 
 # Load file in csv format created in Basis Peak watches. Verify loaded data and return data.table with columns 'time' and 'bpm'.
@@ -75,10 +76,12 @@ load_chest_strap_csv <- function(file, timeShift) {
 
 # Samples input data. Return data.table with time from startTime to endTime with spacing timeInterval. Sampling is create by averaging.
 data_sampling <- function(data, startTime, endTime, timeInterval){
-   if(is.null(data) || nrow(data) == 0 || is.null(startTime) || is.null(endTime) || !is.numeric(timeInterval)) return(NULL)
+   if(is.null(data) || nrow(data) == 0 || is.null(data$time)  || is.null(data$bpm) || is.null(startTime) || is.null(endTime) || !is.numeric(timeInterval)) return(NULL)
    
    startTime <- get_time(startTime)
    endTime <- get_time(endTime)
+   
+   if(is.na(startTime) || is.na(endTime) || startTime > endTime) return(NULL)
    
    sequence <- seq(startTime, endTime, timeInterval)
    size <- length(sequence)
@@ -100,7 +103,7 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
 # If option contains izv, delete all values where is zero. 
 # If option contains io, delete all value which are outliers.
 filter_data <- function(data, options, outliers = TRUE){
-   if(is.null(data)) return(NULL)
+   if(is.null(data) || is.null(data$residues) || is.null(data$bpm.x) || is.null(data$bpm.y) || is.null(data$time)) return(NULL)
    if(is.null(options)) return(data)
    
    ignoreZeroValues  <- 'izv' %in% options
@@ -121,12 +124,13 @@ filter_data <- function(data, options, outliers = TRUE){
 # =================================================================================================================================
 
 calculate_calculation <- function(time_lines, isCorelation = TRUE){
-   if(is.null(time_lines)) return(NULL)
+   if(is.null(time_lines) || is.null(time_lines$residues)) return(NULL)
    
    dispersion <- calculate_dispersion(time_lines$residues)
    std_dev <- sqrt(dispersion)
    
    if (isCorelation){
+      if(is.null(time_lines$bpm.x) || is.null(time_lines$bpm.y)) return(NULL)
       corelation <- cor(x = time_lines$bpm.x, y = time_lines$bpm.y, method = c("pearson"))
       result <- data.table(c("Dispersion", "Standard deviation", "Corelation", "Error SD"),c(dispersion, std_dev, corelation, sd(time_lines$residues)))
    } else {
@@ -141,8 +145,8 @@ calculate_dispersion <- function(residues){
    sum(residues ^ 2)/length(residues)
 }
 
-calculate_quantile <- function(time_lines, name1, name2){
-   if(is.null(time_lines)) return(NULL)
+calculate_quantile <- function(time_lines, name1 = 'a', name2 = 'b'){
+   if(is.null(time_lines) || is.null(time_lines$residues) || is.null(time_lines$bpm.x) || is.null(time_lines$bpm.y) || is.null(name1) || is.null(name2)) return(NULL)
    
    tm1 <- time_lines$bpm.x
    tm2 <- time_lines$bpm.y
@@ -278,6 +282,9 @@ toggleTabs <- function(show = TRUE){
 # Concate input messages with new line as separator. If one of messages is empty, return only second message. If both messages
 # are empty, return empty message.
 paste1 <- function(message1, message2){
+   if(is.null(message1) || is.null(message2)){
+      return("")
+   }
    if (message1 != "" && message2 != ""){
       return(paste(message1, message2, sep = "\n"))
    } else{
