@@ -99,10 +99,10 @@ shinyUI(list(
                                         numericInput(inputId = "timeShiftLow", label = "Time shift for low load [s]", value = 0, min = -3600, max = 3600))),
                              column(width = 4,
                                     div(id = "divTimeShiftMed", class = "divs",
-                                        numericInput(inputId = "timeShiftMed", label = "Time shift for low load [s]", value = 0, min = -3600, max = 3600))),
+                                        numericInput(inputId = "timeShiftMed", label = "Time shift for medium load [s]", value = 0, min = -3600, max = 3600))),
                              column(width = 4,
                                     div(id = "divTimeShiftHig", class = "divs",
-                                        numericInput(inputId = "timeShiftHig", label = "Time shift for low load [s]", value = 0, min = -3600, max = 3600)))
+                                        numericInput(inputId = "timeShiftHig", label = "Time shift for high load [s]", value = 0, min = -3600, max = 3600)))
                           )
                        ),
                        wellPanel(
