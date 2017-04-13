@@ -393,6 +393,63 @@ create_table <- function(data, device1, device2){
 # =================================================================================================================================
 # ============================================================ SERVER =============================================================
 # =================================================================================================================================
+
+input_validation <- function(input, session, filteredInputLow, filteredInputMed, filteredInputHig, fullCheck = TRUE){
+   shinyjs::removeClass(selector = ".divs", class = "color_red")
+   
+   shinyjs::disable(id = "timeButton")
+   shinyjs::disable(id = "submitBtn")
+   
+   message <- ""
+   fail <- FALSE
+   
+   fail <- checkInput(input$inFileLow1, "divInputLow1", fail)
+   fail <- checkInput(input$inFileLow2, "divInputLow2", fail)
+   fail <- checkInput(input$inFileMed1, "divInputMed1", fail)
+   fail <- checkInput(input$inFileMed2, "divInputMed2", fail)
+   fail <- checkInput(input$inFileHig1, "divInputHig1", fail)
+   fail <- checkInput(input$inFileHig2, "divInputHig2", fail)
+   if(fail){
+      message <- "- Please fill empty inputs!"
+   }
+   message <- paste1(message, checkNumericInput(input$timeZone1, "divTimeZone1", "Time zone shift 1", -12, 14))
+   message <- paste1(message, checkNumericInput(input$timeZone2, "divTimeZone2", "Time zone shift 2", -12, 14))
+   message <- paste1(message, checkNumericInput(input$timeShiftLow, "divTimeShiftLow", "Time Shift Low", -3600, 3600))
+   message <- paste1(message, checkNumericInput(input$timeShiftMed, "divTimeShiftMed", "Time Shift Medium", -3600, 3600))
+   message <- paste1(message, checkNumericInput(input$timeShiftHig, "divTimeShiftHig", "Time Shift High", -3600, 3600))
+   
+   timeIntervalInputMessage <- checkNumericInput(input$timeIntervalInput, "divTimeIntervalInput", "Time Sampling Interval", 1, 60) 
+   message <- paste1(message, timeIntervalInputMessage)
+   if(fullCheck){
+      if(timeIntervalInputMessage == ""){
+         message <- paste1(message, checkTimeInput(input$startMeasLow, input$endMeasLow, "divStartMeasLow", "divEndMeasLow", "Measurement interval for low load", input$timeIntervalInput))
+         message <- paste1(message, checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", "Measurement interval for medium load", input$timeIntervalInput))
+         message <- paste1(message, checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", "Measurement interval for high load", input$timeIntervalInput))
+      }
+      
+      if(is.null(filteredInputLow) || nrow(filteredInputLow) == 0) {
+         message <- paste(message, "- Input data are incorrect. Can not make the calculations for low load", sep = "\n")
+      }
+      if(is.null(filteredInputMed) || nrow(filteredInputMed) == 0) {
+         message <- paste(message, "- Input data are incorrect. Can not make the calculations for medium load", sep = "\n")
+      }
+      if(is.null(filteredInputHig) || nrow(filteredInputHig) == 0) {
+         message <- paste(message, "- Input data are incorrect. Can not make the calculations for high load", sep = "\n")
+      }
+   }
+   
+   shinyjs::enable(id = "timeButton")
+   shinyjs::enable(id = "submitBtn")
+   
+   if(message == ""){
+      return(TRUE)
+   } else {
+      toggleTabs(FALSE)
+      session$sendCustomMessage(type = 'allertMessage', message = message)
+      return(FALSE)
+   }
+}
+
 function(input, output, session) {
    print("--------------------------------------------- start --------------------------------------------------------")
    
@@ -402,73 +459,34 @@ function(input, output, session) {
    
    # On click on submitBtn input data are validated. On success summary tab is displayed. Otherwise alert is shown.
    observeEvent(input$submitBtn, {
-      shinyjs::removeClass(selector = ".divs", class = "color_red")
       
-      shinyjs::disable(id = "timeButton")
-      shinyjs::disable(id = "submitBtn")
+      result = input_validation(input, session, filteredInputLow(), filteredInputMed(), filteredInputHig())
       
-      message <- ""
-      fail <- FALSE
-      
-      fail <- checkInput(input$inFileLow1, "divInputLow1", fail)
-      fail <- checkInput(input$inFileLow2, "divInputLow2", fail)
-      fail <- checkInput(input$inFileMed1, "divInputMed1", fail)
-      fail <- checkInput(input$inFileMed2, "divInputMed2", fail)
-      fail <- checkInput(input$inFileHig1, "divInputHig1", fail)
-      fail <- checkInput(input$inFileHig2, "divInputHig2", fail)
-      if(fail){
-         message <- "- Please fill empty inputs!"
-      }
-      message <- paste1(message, checkNumericInput(input$timeZone1, "divTimeZone1", success, -12, 14))
-      message <- paste1(message, checkNumericInput(input$timeZone2, "divTimeZone2", success, -12, 14))
-      message <- paste1(message, checkNumericInput(input$timeShiftLow, "divTimeShiftLow", "Time Shift Low", -3600, 3600))
-      message <- paste1(message, checkNumericInput(input$timeShiftMed, "divTimeShiftMed", "Time Shift Medium", -3600, 3600))
-      message <- paste1(message, checkNumericInput(input$timeShiftHig, "divTimeShiftHig", "Time Shift High", -3600, 3600))
-      
-      timeIntervalInputMessage <- checkNumericInput(input$timeIntervalInput, "divTimeIntervalInput", "Time Sampling Interval", 1, 60) 
-      message <- paste1(message, timeIntervalInputMessage)
-      if(timeIntervalInputMessage == ""){
-         message <- paste1(message, checkTimeInput(input$startMeasLow, input$endMeasLow, "divStartMeasLow", "divEndMeasLow", "Measurement interval for low load", input$timeIntervalInput))
-         message <- paste1(message, checkTimeInput(input$startMeasMed, input$endMeasMed, "divStartMeasMed", "divEndMeasMed", "Measurement interval for medium load", input$timeIntervalInput))
-         message <- paste1(message, checkTimeInput(input$startMeasHig, input$endMeasHig, "divStartMeasHig", "divEndMeasHig", "Measurement interval for high load", input$timeIntervalInput))
-      }
-      
-      if(is.null(filteredInputLow()) || nrow(filteredInputLow()) == 0) {
-         message <- paste(message, "- Input data are incorrect. Can not make the calculations for low load", sep = "\n")
-      }
-      if(is.null(filteredInputMed()) || nrow(filteredInputMed()) == 0) {
-         message <- paste(message, "- Input data are incorrect. Can not make the calculations for medium load", sep = "\n")
-      }
-      if(is.null(filteredInputHig()) || nrow(filteredInputHig()) == 0) {
-         message <- paste(message, "- Input data are incorrect. Can not make the calculations for high load", sep = "\n")
-      }
-      
-      shinyjs::enable(id = "timeButton")
-      shinyjs::enable(id = "submitBtn")
-      if(message == ""){
+      if(result){
          toggleTabs()
          updateNavbarPage(session, "navbar", selected = "tabSummary")
-      } else {
-         toggleTabs(FALSE)
-         session$sendCustomMessage(type = 'allertMessage', message = message)
       }
    })
    
    observeEvent(input$timeButton, {
-      shinyjs::disable(id = "timeButton")
-      shinyjs::disable(id = "submitBtn")
+      result = input_validation(input, session, filteredInputLow(), filteredInputMed(), filteredInputHig(), fullCheck = FALSE)
       
-      result <- set_time_Limits(inputLow1(), inputLow2(), session, "startMeasLow", "endMeasLow", input$deviceSelect1, input$deviceSelect2)
-      output$lowTimeWarning <- renderText(result)
-      
-      result <- set_time_Limits(inputMed1(), inputMed2(), session, "startMeasMed", "endMeasMed", input$deviceSelect1, input$deviceSelect2)
-      output$medTimeWarning <- renderText(result)
-      
-      result <- set_time_Limits(inputHig1(), inputHig2(), session, "startMeasHig", "endMeasHig", input$deviceSelect1, input$deviceSelect2)
-      output$higTimeWarning <- renderText(result)
-      
-      shinyjs::enable(id = "timeButton")
-      shinyjs::enable(id = "submitBtn")
+      if(result){
+         shinyjs::disable(id = "timeButton")
+         shinyjs::disable(id = "submitBtn")
+         
+         result <- set_time_Limits(inputLow1(), inputLow2(), session, "startMeasLow", "endMeasLow", input$deviceSelect1, input$deviceSelect2)
+         output$lowTimeWarning <- renderText(result)
+         
+         result <- set_time_Limits(inputMed1(), inputMed2(), session, "startMeasMed", "endMeasMed", input$deviceSelect1, input$deviceSelect2)
+         output$medTimeWarning <- renderText(result)
+         
+         result <- set_time_Limits(inputHig1(), inputHig2(), session, "startMeasHig", "endMeasHig", input$deviceSelect1, input$deviceSelect2)
+         output$higTimeWarning <- renderText(result)
+         
+         shinyjs::enable(id = "timeButton")
+         shinyjs::enable(id = "submitBtn")
+      }
    })
    
    # When value is changed of some element in list below, tabs with results are hiden.
