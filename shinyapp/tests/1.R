@@ -58,7 +58,7 @@ test.calculate_quantile <- function() {
       c(100,100,100,100,100,100)
    )
    setnames(exp, c("V1","V2","V3","V4","V5", "V6", "V7"),
-            c("", "a [BPM]", "b [BPM]", 'error [BPM]', 'absolute error [BPM]', 'relative error [%]', 'absolute relative error [%]')
+            c("", "a [BPM]", "b [BPM]", 'Error [BPM]', 'Absolute error [BPM]', 'Relative error [%]', 'Absolute relative error [%]')
    )
    
    checkEquals(target = exp, current = calculate_quantile(table))
@@ -257,10 +257,7 @@ test.data_sampling3 <- function() {
    startTime = "01.01.1970 01:00:30"
    endTime = "01.01.1970 01:00:59"
    
-   expected <- data.table(c(30,32,34,36,38,40,42,44,46,48,50,52,54,56,58), c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
-   setnames(expected, c("V1", "V2"), c("time", "bpm"))
-   
-   checkEquals(target = expected, current = data_sampling(table, startTime, endTime, 2))
+   checkEquals(target = NULL, current = data_sampling(table, startTime, endTime, 2))
 }
 
 test.data_sampling4 <- function() {
