@@ -340,9 +340,9 @@ create_plot <- function(time_lines, name1, name2){
       need(nrow(time_lines) != 0,'Can not create a plot. No input data.')
    )
    
-   plot_ly(y = time_lines$bpm.x, x = strptime(time_lines$time, format = "%s"), name = name1, type = 'scatter', mode = 'lines')%>%
+   plot_ly(y = time_lines$bpm.x, x = time_lines$time - time_lines$time[1], name = name1, type = 'scatter', mode = 'lines')%>%
       add_trace(y = time_lines$bpm.y, name = name2, mode = 'lines')%>%
-      layout(xaxis = list(title = "Time"), yaxis = list(title = "BPM"))
+      layout(xaxis = list(title = "Time [s]"), yaxis = list(title = "BPM"))
 }
 
 # Create plot of residuas.
@@ -352,8 +352,8 @@ create_resi_plot <- function(time_lines){
       need(nrow(time_lines) != 0,'Can not create a plot. No input data.')
    )
    
-   plot_ly(time_lines, y = ~residues, x = strptime(time_lines$time, format = "%s"), type = 'scatter', mode = 'lines')%>%
-      layout(xaxis = list(title = "Time"), yaxis = list(title = "A - B [BPM]"))
+   plot_ly(time_lines, y = ~residues, x = time_lines$time - time_lines$time[1], type = 'scatter', mode = 'lines')%>%
+      layout(xaxis = list(title = "Time [s]"), yaxis = list(title = "A - B [BPM]"))
 }
 
 # Create Bland&Altman plot from input data.
