@@ -14,10 +14,10 @@ load_data <- function(file, deviceSelect, timeShift){
    if(is.null(file) || !is.numeric(timeShift)) return(NULL)
    
    data <- switch(deviceSelect,
-                  chest_strap = load_chest_strap_csv(file, timeShift),
-                  garmin = load_garmin_tcx(file, timeShift),
-                  basis = load_basis_csv(file, timeShift),
-                  fitbit = load_fitbit_csv(file, timeShift),
+                  Chest_strap = load_chest_strap_csv(file, timeShift),
+                  Garmin = load_garmin_tcx(file, timeShift),
+                  Basis = load_basis_csv(file, timeShift),
+                  Fitbit = load_fitbit_csv(file, timeShift),
                   return(NULL))
    
    data[apply(data[,.(time, bpm)], 1, function(row) all(!is.na(row))),]
@@ -173,10 +173,10 @@ calculate_quantile <- function(time_lines, name1 = 'a', name2 = 'b'){
                "",
                paste0(name1, " [BPM]"),
                paste0(name2, " [BPM]"),
-               'error [BPM]',
-               'absolute error [BPM]',
-               'relative error [%]',
-               'absolute relative error [%]'
+               'Error [BPM]',
+               'Absolute error [BPM]',
+               'Relative error [%]',
+               'Absolute relative error [%]'
                )
             )
    table
@@ -368,7 +368,7 @@ create_bland_altman_plot <- function(time_lines){
    data.x <- (time_lines$bpm.x + time_lines$bpm.y)/2
    data.y <- time_lines$bpm.x - time_lines$bpm.y
    
-   plot_ly(x = ~data.x, y = ~data.y, name = 'data', type = 'scatter', mode = 'markers') %>%
+   plot_ly(x = ~data.x, y = ~data.y, name = 'Data', type = 'scatter', mode = 'markers') %>%
       add_trace(y = ~data.mean + data.sd, name = 'Mean + 1.96SD', mode = 'lines') %>%
       add_trace(y = ~data.mean, name = 'Mean', mode = 'lines') %>%
       add_trace(y = ~data.mean - data.sd, name = 'Mean - 1.96SD', mode = 'lines') %>%
@@ -771,7 +771,7 @@ function(input, output, session) {
    })
    output$boxPlotWarning1 <- output$boxPlotWarning2 <- output$boxPlotWarning3 <- renderText({
       if (!is.null(input$otherOptions) && 'io' %in% input$otherOptions){
-         "Box plot is independent on 'ignore outliers' option"
+         "The box plot is independent of 'ignore outliers' option"
       } else {
          ""
       }

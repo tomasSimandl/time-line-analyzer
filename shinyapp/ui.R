@@ -15,7 +15,7 @@ shinyUI(list(
                        wellPanel(
                           h2("First data set"),
                           fluidRow(
-                             column(width = 6, selectInput(inputId = "deviceSelect1", label = "Choose a device", c("Chest strap" = "chest_strap", "Garmin" = "garmin", "Basis" = "basis", "Fitbit" = "fitbit"))),
+                             column(width = 6, selectInput(inputId = "deviceSelect1", label = "Choose a device", c("Chest strap" = "Chest_strap", "Garmin" = "Garmin", "Basis" = "Basis", "Fitbit" = "Fitbit"))),
                              column(width = 6,
                                     div(id = "divTimeZone1", class = "divs",
                                         numericInput(inputId = "timeZone1", label = "Time zone shift [h]", value = 0, min = -12, max = 14, step = 0.25)))
@@ -35,7 +35,7 @@ shinyUI(list(
                        wellPanel(
                           h2("Second data set"),
                           fluidRow(
-                             column(width = 6, selectInput(inputId = "deviceSelect2", label = "Choose a device", c("Chest strap" = "chest_strap", "Garmin" = "garmin", "Basis" = "basis", "Fitbit" = "fitbit"))), 
+                             column(width = 6, selectInput(inputId = "deviceSelect2", label = "Choose a device", c("Chest strap" = "Chest_strap", "Garmin" = "Garmin", "Basis" = "Basis", "Fitbit" = "Fitbit"))), 
                              column(width = 6,
                                     div(id = "divTimeZone2", class = "divs",
                                         numericInput(inputId = "timeZone2", label = "Time zone shift [h]", value = 0, min = -12, max = 14, step = 0.25)))
@@ -53,7 +53,7 @@ shinyUI(list(
                           )
                        ),
                        wellPanel(
-                          h2("Setting"),
+                          h2("Settings"),
                           fluidRow(
                              column(width = 4,
                                     div(id = "divTimeIntervalInput", class = "divs",
@@ -111,100 +111,97 @@ shinyUI(list(
               ),
               
               tabPanel("Low", value = "tabLow",
-                       h1("Compare of two time lines for low load"),
+                       h1("Comparison of two timelines for low load"),
                        wellPanel(
                           h2("Calculations"),
                           tableOutput("quantileLow"),
                           tableOutput("calculationLow")
                        ),
                        wellPanel(
-                          h2("Plot comparing measurement from two devices"),
+                          h2("Comparison plot"),
+                          p("The plot shows comparison of measurements from two devices"),
                           plotlyOutput("plotLow")
                        ),
                        wellPanel(
                           h2("Plot of residues"),
-                          p("Plot showing difference of two measurement from different inputs, which means size of error."),
+                          p("The plot shows differences between measurements using two different devices."),
                           plotlyOutput("plotResiLow")
                        ),
                        wellPanel(
                           h2("Bland-Altman plot"),
-                          p("Bland-Altman plot showing comprasion of two measurement A and B. When is A similar to B, points are
-                             close to line mean."),
+                          p("The Bland-Altman plot shows comparisons of two measurement A and B."),
                           plotlyOutput("BAPlotLow")
                        ),
                        wellPanel(
                           h2("Box plot"),
-                          p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
-                            outliers of residues, which means outliers of difference of two measurement from different inputs."),
+                          p("The box plot shows outliers of residues as separate points."),
                           plotlyOutput("boxPlotLow"),
                           span(textOutput("boxPlotWarning1"), class = "color_red")
                        )
               ),
               
               tabPanel("Medium", value = "tabMedium",
-                       h1("Compare of two time lines for medium load"),
+                       h1("Comparison of two timelines for medium load"),
                        wellPanel(
                           h2("Calculations"),
                           tableOutput("quantileMed"),
                           tableOutput("calculationMed")
                        ),
                        wellPanel(
-                          h2("Plot comparing measurement from two devices"),
+                          h2("Comparison plot"),
+                          p("The plot shows comparison of measurements from two devices"),
                           plotlyOutput("plotMed")
                        ),
                        wellPanel(
                           h2("Plot of residues"),
-                          p("Plot showing difference of two measurement from different inputs, which means size of error."),
+                          p("The plot shows differences between measurements using two different devices."),
                           plotlyOutput("plotResiMed")
                        ),
                        wellPanel(
                           h2("Bland-Altman plot"),
-                          p("Bland-Altman plot showing comprasion of two measurement A and B. When is A similar to B, points are
-                             close to line mean."),
+                          p("The Bland-Altman plot shows comparisons of two measurement A and B."),
                           plotlyOutput("BAPlotMed")
                        ),
                        wellPanel(
                           h2("Box plot"),
-                          p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
-                            outliers of residues, which means outliers of difference of two measurement from different inputs."),
+                          p("The box plot shows outliers of residues as separate points."),
                           plotlyOutput("boxPlotMed"),
                           span(textOutput("boxPlotWarning2"), class = "color_red")
                        )
               ),
               
               tabPanel("High", value = "tabHigh",
-                       h1("Compare of two time lines for high load"),
+                       h1("Comparison of two timelines for high load"),
                        wellPanel(
                           h2("Calculations"),
                           tableOutput("quantileHig"),
                           tableOutput("calculationHig")
                        ),
                        wellPanel(
-                          h2("Plot comparing measurement from two devices"),
+                          h2("Comparison plot"),
+                          p("The plot shows comparison of measurements from two devices"),
                           plotlyOutput("plotHig")
                        ),
                        wellPanel(
                           h2("Plot of residues"),
-                          p("Plot showing difference of two measurement from different inputs, which means size of error."),
+                          p("The plot shows differences between measurements using two different devices."),
                           plotlyOutput("plotResiHig")
                        ),
                        wellPanel(
                           h2("Bland-Altman plot"),
-                          p("Bland-Altman plot showing comprasion of two measurement A and B. When is A similar to B, points are
-                             close to line mean."),
+                          p("The Bland-Altman plot shows comparisons of two measurement A and B."),
                           plotlyOutput("BAPlotHig")
                        ),
                        wellPanel(
                           h2("Box plot"),
-                          p("Box plot showing outliers. Values which are displayed as a points are outliers. This plot showing 
-                            outliers of residues, which means outliers of difference of two measurement from different inputs."),
+                          p("The box plot shows outliers of residues as separate points."),
                           plotlyOutput("boxPlotHig"),
                           span(textOutput("boxPlotWarning3"), class = "color_red")
                        )
               ),
               
               tabPanel("Summary", value = "tabSummary",
-                       h1("Compare of two time lines for every measurement load"),
+                       h1("Comparison of two timelines for every measurement load"),
                        wellPanel(
                           h2("Calculations"),
                           tableOutput("quantileSum"),
@@ -226,13 +223,16 @@ shinyUI(list(
                        div(id = "divAbout",
                            wellPanel(
                               h2("Quick overview"),
-                              p("This tool allows you to compare two measurement of heart beat divided to three
-                             parts with difrent excersise. Comparison includes computing of corelation, standard
-                             deviation, means, medians, quartils and minimal and maximal values. Next there are 
-                             graphs for visualization of comparison."),
+                              p("This tool allows you to compare two measurements of heart rate divided in to three
+                             parts with difrent physical load. Comparison includes computing of corelation, standard
+                             deviation, means, medians, quartils and minimum and maximaum values of measured data 
+                             and errors. Measured data are visualizated in graphs."),
                               h2("More informaton"),
                               p("This tool was developed in the R programing language."),
-                              p("This work is part of bachelor thesis...")
+                              p("This work is part of bachelor thesis."),
+                              p("Title of bachelor thesis: Software tools for verification of heart rate measurement accuracy."),
+                              p("Author: Tomáš Šimandl"),
+                              p("Student at University of West Bohemia")
                            )
                        )
               )
