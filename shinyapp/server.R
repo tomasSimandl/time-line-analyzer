@@ -311,7 +311,7 @@ set_time_Limits <- function(file1, file2, session, startTextInput, endTextInput,
              get_formated_time(tail(file1$time, n = 1)),
              " - ",
              device1,
-             "\n",
+             "<br/>",
              get_formated_time(file2$time[1L]),
              " - ",
              get_formated_time(tail(file2$time, n = 1)),
@@ -476,13 +476,13 @@ function(input, output, session) {
          shinyjs::disable(id = "submitBtn")
          
          result <- set_time_Limits(inputLow1(), inputLow2(), session, "startMeasLow", "endMeasLow", input$deviceSelect1, input$deviceSelect2)
-         output$lowTimeWarning <- renderText(result)
+         output$lowTimeWarning <- renderUI(HTML(result))
          
          result <- set_time_Limits(inputMed1(), inputMed2(), session, "startMeasMed", "endMeasMed", input$deviceSelect1, input$deviceSelect2)
-         output$medTimeWarning <- renderText(result)
+         output$medTimeWarning <- renderUI(HTML(result))
          
          result <- set_time_Limits(inputHig1(), inputHig2(), session, "startMeasHig", "endMeasHig", input$deviceSelect1, input$deviceSelect2)
-         output$higTimeWarning <- renderText(result)
+         output$higTimeWarning <- renderUI(HTML(result))
          
          shinyjs::enable(id = "timeButton")
          shinyjs::enable(id = "submitBtn")

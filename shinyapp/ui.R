@@ -86,9 +86,9 @@ shinyUI(list(
                                         textInput(inputId = "endMeasHig", "To", value = "---")))
                           ),
                           fluidRow(
-                             column(width = 4, span(class = "color_red", textOutput("lowTimeWarning"))),
-                             column(width = 4, span(class = "color_red", textOutput("medTimeWarning"))),
-                             column(width = 4, span(class = "color_red", textOutput("higTimeWarning")))
+                             column(width = 4, span(class = "color_red", htmlOutput("lowTimeWarning"))),
+                             column(width = 4, span(class = "color_red", htmlOutput("medTimeWarning"))),
+                             column(width = 4, span(class = "color_red", htmlOutput("higTimeWarning")))
                           ),
                           fluidRow(
                              column(width = 12, actionButton(inputId = "timeButton", label = "Fill time automatically", width = "100%"))
