@@ -96,6 +96,10 @@ data_sampling <- function(data, startTime, endTime, timeInterval){
       }
       startTime <- startTime + timeInterval
    }
+   
+   if(nrow(DT[apply(DT[,.(bpm)], 1, function(row) all(row != 0)),]) < nrow(DT)*0.25){
+      return(NULL)
+   }
    DT
 }
 
