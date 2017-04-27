@@ -129,7 +129,7 @@ shinyUI(list(
                        ),
                        wellPanel(
                           h2("Bland-Altman plot"),
-                          p("The Bland-Altman plot shows comparisons of two measurement A and B."),
+                          p("The Bland-Altman plot shows comparison of two measurements A and B."),
                           plotlyOutput("BAPlotLow")
                        ),
                        wellPanel(
@@ -159,7 +159,7 @@ shinyUI(list(
                        ),
                        wellPanel(
                           h2("Bland-Altman plot"),
-                          p("The Bland-Altman plot shows comparisons of two measurement A and B."),
+                          p("The Bland-Altman plot shows comparison of two measurements A and B."),
                           plotlyOutput("BAPlotMed")
                        ),
                        wellPanel(
@@ -189,7 +189,7 @@ shinyUI(list(
                        ),
                        wellPanel(
                           h2("Bland-Altman plot"),
-                          p("The Bland-Altman plot shows comparisons of two measurement A and B."),
+                          p("The Bland-Altman plot shows comparison of two measurements A and B."),
                           plotlyOutput("BAPlotHig")
                        ),
                        wellPanel(
